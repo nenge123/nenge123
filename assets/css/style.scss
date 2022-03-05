@@ -565,7 +565,14 @@ img{max-width: 100%;}
     padding: 5px;
     margin: 0px;
     background: var(--wb-bgc);
+    color: var(--wb-c-balck);
     a{color: var(--wb-c-balck);}
+    >p{
+      text-indent:15px;
+    }
+  }
+  .pl-15{
+    padding-left: 15px;
   }
   &.info{
     border-color: var(--wb-info-wc);
@@ -758,13 +765,15 @@ fieldset.wbox{
   &.icons-telegram:before {content: "\e69a";}
 }
 
+figure.highlight,
 .highlighter-rouge{
   margin: 0px 10px;
   color: #fafafa;
   background-color: #223;
   border-radius: 5px;
   box-shadow: #1e0010 0px 0px 2px 2px;
-  pre.highlight{overflow-x: auto;padding:10px;margin: 0px}
+  >pre,
+  >.highlight>pre{overflow-x: auto;padding:10px;margin: 0px}
   code,span{font-family: Menlo, Monaco, Consolas;font-size:var(--fontsize-text);}
   .hll {background-color: #49483e;}
   .c {color: #75715e;}
@@ -828,7 +837,7 @@ fieldset.wbox{
   .gu {color: #75715e;}
   .gd {color: #f92672;}
   .gi {color: #a6e22e;}
-  &.language-bash{
+  .language-bash{
     .nb{color:#e79858}
   }
 }

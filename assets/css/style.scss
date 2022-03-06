@@ -355,6 +355,9 @@ img{max-width: 100%;}
             color: var(--color-blue1);
           }
         }
+        >.post-content{
+          word-break: break-all;
+        }
         &[open]>summary::marker{
           content: "\E665";
           color:var(--color-pink);

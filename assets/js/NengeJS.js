@@ -14,10 +14,10 @@ window['NengeNet'] = new class NengeApp {
     }
     localServer = document.domain.search(/localhost|127.0./g) !== -1;
     FILE = {};
-    ver = 1.0;
+    ver = 1.1;
     DB_LIST = {
         'base.zip': {
-            'ver': 1.4,
+            'ver': 1.5,
             'files': ['comments.js','Nengeicons.woff']
         }
     };
@@ -47,8 +47,7 @@ window['NengeNet'] = new class NengeApp {
                 this.DB_ZipFiles.push({DB_ID,NoCache});
                 return this.DB_LOAD('JSZip.js');
             }
-            this.log(DB_ID);
-            this._Fetch('js/'+DB_ID+'?'+Math.random()).then(data => {
+            this._Fetch('js/'+DB_ID+(fileType == 'zip'?'.js':'')+'?'+Math.random()).then(data => {
                 if(fileType == 'zip'){
                     (new this.JSZip()).loadAsync(data).then(ZipData => {
                         let files = {}, dataLength=0,readLength=0,

@@ -3,7 +3,7 @@ layout: post
 title: 已经被迁移
 date: 2021-11-25 09:58
 ---
-<h3><a href="//emujs.nenge.net">emujs.nenge.net 由于被一条外国疯狗咬了，无法使用了，因为水平有限，不太会申诉。</a></h3>
+<h3><a href="//emujs.nenge.net">emujs.nenge.net 由于被一条外国疯狗咬了，无法使用了，因为英文水平有限，不太会申诉。</a></h3>
 <div class="wbox red">
     <h3 class="title">计划</h3>
     <div class="content">
@@ -34,80 +34,3 @@ date: 2021-11-25 09:58
         <p>3.龟速开关并非无用而是未设置，需要自己在input&gt;hotkey&gt;slow...设置任意非重复键值。设置里面的frame_throttle可设置加速减速倍数。</p>
     </div>
 </div>
-<script>
-    ((N)=>{
-        let down = (data,name)=>{
-                let URL = window['URL'] || window['webkitURL'],
-                    a = document['createElement']('a');
-                a.href = URL.createObjectURL(new Blob([data],{'type':"application/octet-stream"}));
-                a.name = name;
-                a.download  = name;
-                a.click();
-            },
-            romsdata = N.localForage.createInstance({'name': 'ejs-romsdata','storeName': "romsdata"}),
-            savesdata = N.localForage.createInstance({'name': '/data/saves','storeName': "FILE_DATA"});
-        romsdata.keys().then(list => {
-            let HTML = '';
-            for(var i in list){
-                if(list[i].indexOf('part') ==-1)HTML += '<li class="wbox blue">游戏文件:<b  data-name="'+list[i]+'">'+list[i]+' → 下载</b></li>';
-            }
-            let div = document.querySelector('#rom');
-            div.innerHTML = HTML;
-            div.onclick = (event)=>{
-                let elm = event.target,
-                    name = elm.getAttribute('data-name');
-                if(name){
-                    romsdata.getItem(name).then(function(roms){
-                        let data;
-                        if(roms.filesize != roms.data.length){
-                            let Buf = new Uint8Array(roms.filesize),zindex=roms.data.length;
-                            Buf.set(roms.data,0);
-                            checkNext = (nextrom)=>{
-                                if(nextrom.next){
-                                    romsdata.getItem(nextrom.next).then((nextromdata)=>{
-                                        if(nextromdata){
-                                            Buf.set(nextromdata.data,zindex);
-                                            zindex+=nextromdata.data.length;
-                                            checkNext(nextromdata);
-                                        }else{
-                                            down(Buf,roms.filename);
-                                        }
-                                    });
-                                }else{
-                                    down(Buf,roms.filename);
-                                }
-                            }
-                            checkNext(roms);
-                            
-                        }else{
-                            down(roms.data,roms.filename);
-                        }
-                    });
-                }
-            }
-            console.log(list);
-        });
-        savesdata.keys().then(list => {
-            let HTML = '';
-            for(var i in list){
-                let type = list[i].split('.').pop(),
-                    name = list[i].split('/').pop();
-                if(list[i].indexOf('part') ==-1)HTML += '<li class="wbox org">'+(type=='srm'||type=='dsv'?"普通存档":(type=='state'?"即时存档文件":"其他存档"))+'文件:<b  data-name="'+list[i]+'">'+name+' → 下载</b></li>';
-            }
-            let div = document.querySelector('#save');
-            div.innerHTML = HTML;
-            div.onclick = (event)=>{
-                let elm = event.target,
-                    name = elm.getAttribute('data-name');
-                if(name){
-                    savesdata.getItem(name).then(function(roms){
-                        down(roms.contents,name.split('/').pop());
-                    });
-                }
-            }
-            console.log(list);
-        });
-        
-    })(NengeNet);
-    console.log(NengeNet);
-</script>

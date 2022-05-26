@@ -40,90 +40,63 @@ this.on(document,'visibilitychange',e=>{
 ## fetch GET/POST
 
 ```javascript
-    let url = '',
-        urldata = {},// GET "q=URLUtils.searchParams&topic=api"
-        method = 'GET',
-        paramData = method=="GET" ? new URLSearchParams(typeof urldata == 'String' ?urldata&&urldata:null): new FormData();
-    /*
-        var paramsString = "q=URLUtils.searchParams&topic=api";
-        var searchParams = new URLSearchParams(paramsString);
-    */
-    if(urldata&&typeof urldata == 'Object'){
-        for(let k in urldata){
-            let v = urldata[k];
-            if(v instanceof Uint8Array){
-                v = new File([v.buffer], 'my.png',{type: "image/png"});
-            }
-            paramData.append(k,v);
-        }
+
+async function Fecth(ARG){
+    let url = ARG.url,
+        type= ARG.type||'arrayBuffer',
+        fd,
+        form,
+        data={};
+    if(ARG.get){
+        url +=(/\?/.test(url)?'&':'?')+new URLSearchParams(ARG.get).toString()
     }
-    if(method == 'GET'){
-        paramData = '?'+paramData.toString();
-    }else {
-        //upload file
-        paramData.append("image",
-            new File(
-                [new ArrayBuffer()], //arrayBuffer
-                'my.png',
-                {type: "image/png"}
-            )
-        );
+    ['headers','context','referrer','referrerPolicy','mode','credentials','redirect','integrity','cache'].forEach(val=>{
+        if(ARG[val] != undefined)data[val] = ARG[val];
+    });
+    if(ARG.form||ARG.post){
+        if(typeof ARG.form == 'string')form = this.$(ARG.form);
+        else if(ARG.form instanceof HTMLElement) form = ARG.form;
+        fd = new FormData(form || undefined);
+        if(ARG.post)for(var i in ARG.post)fd.append(i,ARG.post[i]),delete ARG.post[i];
     }
-    let request = new Request(
-        url+(method=="GET"?paramData:''),
-        method=="POST" ? 
-            {
-                'method': method,
-                //'headers': {
-                //    'Content-Type': 'multipart/formdata'
-                //},
-                'body': paramData
-            }
-            :
-            {
-                //'headers':{
-                //    'Content-Type':'application/x-www-form-urlencoded'
-                //}
-            }
-    );
-    let type= 'arrayBuffer',
-        headers = {},
-        response = await fetch(request);
+    if(fd){
+        data.method = 'POST';
+        data.body = fd;
+    }
+    let headers = {},
+        response = await fetch(new Request(url,data));
     for (const [key, value] of response.headers.entries()) {
         headers[key] = value;
-
     }
     if (response.status == 404) {
-        error&&error(response.statusText);
+        return ARG.error&&ARG.error(response.statusText);
     }
+    let downsize = Number(headers["content-length"]) || 0,
+    havesize = 0;
     const reader = response.body.getReader();
     const stream = new ReadableStream({
         start(controller) {
-            let push = e => {
-                reader.read().then(({done,value}) => {
-                    if (done) {
-                        controller.close();
-                        push = null;
-                        return;
-                    }
+            let push = async ()=>{
+                const {done,value} = await reader.read();
+                if(done){
+                    controller.close();
+                    push = null;
+                }else{
                     havesize += value.length;
-                    let statussize = '0%';
-                    if(headers['Content-Length'])statussize = Math.floor(havesize / Number(headers['Content-Length']) * 100) + '%';
-                    process &&process(statussize, value.length, havesize);
+                    let statussize;
+                    if(downsize)statussize = downtext+Math.floor(havesize / downsize * 100) + '%';
+                    ARG.process && ARG.process(statussize,value.length, havesize);
                     //下载或者上传进度
                     controller.enqueue(value);
                     push();
-                });
-            }
+                }
+            };
             push();
         }
     });
     let contents = await (new Response(stream)[type]());
-
-```
-
-## fetch post
-
-```javascript
+    ARG.success&&ARG.success(contents,headers);
+    return contents;
+}
 
 ```

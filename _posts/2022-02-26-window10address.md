@@ -1,10 +1,10 @@
 ---
 layout: post
-title: "windows10 镜像记录"
+title: "windows10 镜像版本"
 date: 2022-02-26 23:02 +0800
 category: windows
 ---
->珍惜电脑，暂时勿用windows11
+
 <div class="wbox error">
     <h3 class="title">Windows 10 21H1</h3>
     <div class="content pl-15">

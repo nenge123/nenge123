@@ -1,4 +1,4 @@
-const MyPWA = new class{
+var MyPWA = new class{
     constructor(){
         this.setCache();
         this.setIDB();

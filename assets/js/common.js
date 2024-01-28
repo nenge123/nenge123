@@ -1564,15 +1564,7 @@
             return url && url.split(p).slice(0, -1).join(p) + p
         },
         getName(str) {
-            if(str){
-                let str2 = str.split(/\//).pop().split(/\?/)[0].split(/\#/)[0];
-                if(!str2){
-                    let str3 = str.match(/([^\?\.\\\/]+\.[a-zA-Z]+)/g);
-                    return str3?str3.pop():"";
-                }
-                return str2;
-            }
-            return "";
+            return I.str(str)?str.split('/').pop().split(/\?/)[0].split(/\#/)[0]:"";
         },
         dirname(path,num){
             if(!num)num=1;

@@ -283,6 +283,7 @@
             SQL._sqlite3_free();
             SQL._free();
             getId('loading-page').remove();
+            getId('div-player').hidden = !1;
         },
         async TEMPLATE_INSTALL(jsondata, cache) {
             const TP = this;

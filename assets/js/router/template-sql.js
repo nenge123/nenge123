@@ -13,13 +13,13 @@ var MyTemplate = new class{
     }
     async init(){
         //await T.addJS(T.libPath+ 'sql.js');
-        await T.addLib('sql.zip');
         const jsondata = await T.ajax({url:'config.json',type:'json'});
         if(!jsondata){
             return this.gotoPWA();
         }
         this.jsondata = jsondata;
         if(jsondata.mode=='sql'){
+            await T.addLib('sql.zip');
             return this.RUN_SQL(jsondata);
         }
     }
@@ -28,11 +28,8 @@ var MyTemplate = new class{
         let url = jsondata.url;
         let limit = jsondata.limit;
         if(jsondata.script){
-            //if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
-            //else 
             if(!T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
             else await T.addJS(path+'/script.js');
-            //(new Function(jsondata.script))();
         }
         if(window.TEMPLATE_UPDATE_BUTTON){
             TEMPLATE_UPDATE_BUTTON(this);

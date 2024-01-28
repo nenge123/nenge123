@@ -1,4 +1,4 @@
-const common = new class{
+var MySite = new (class{
     constructor(T){
         T.SW.register('/sw.js?20240128');
         const LibStore = T.getTable('libjs');
@@ -8,7 +8,8 @@ const common = new class{
     initHead(){
         const navBtn = T.$('.menu-toggle');
         navBtn&&navBtn.on('click',function(e){
+            e.preventDefault();
             this.classList.toggle('active');
         });
     }
-}(Nenge);
+})(Nenge);

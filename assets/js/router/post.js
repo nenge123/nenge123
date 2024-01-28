@@ -1,4 +1,4 @@
-const post = new class{
+var MyPost = new class{
     constructor(){
         this.init();
         this.creatTag();
@@ -124,7 +124,8 @@ const post = new class{
     async loadMermaid(){
         if(!this.mermaid){
             this.mermaid = I.Async(async back=>{
-                await T.addLib('mermaid.min.zip');
+                if(T.isLocal) await T.addJS('https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js');
+                else await T.addLib('mermaid.min.zip');
                 mermaid.initialize({startOnLoad: true,theme: "forest",flowchart:{useMaxWidth: true,htmlLabels: true}});
                 back(true);
             });

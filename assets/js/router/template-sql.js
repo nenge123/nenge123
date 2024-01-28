@@ -1,4 +1,4 @@
-const template = new class{
+var MyTemplate = new class{
     constructor(){
         T.docload(e=>{
             let upbtn = document.getElementById('btn-update-cache');

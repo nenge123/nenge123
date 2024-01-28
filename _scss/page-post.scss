@@ -868,6 +868,9 @@ $color-pink:#ffa6a6;
 $color-red:#d72e2e;
 .post{
     padding: 5px;
+    img{
+        max-width: 100%;
+    }
     a{
         color: #31a4e9;
         &:hover{

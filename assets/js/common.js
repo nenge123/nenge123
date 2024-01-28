@@ -918,7 +918,7 @@
             },sw)
         }
         register(file) {
-            this.SW.register(file).then(e => {
+            this.SW&&this.SW.register(file).then(e => {
                 const sw = e.installing || e.active;
                 this.sw = sw;
                 this.connect(sw,'register');
@@ -2380,16 +2380,7 @@
                     if(router){
                         await I.Async(router.trim().split(',').map(name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion)));
                     }
-                    console.log(router);
                     T.toEvent('ready');
-                    //T.css.addFont(T.JSpath+'router/fonts/ch-icon.woff2','aplayer-icon');
-                    //await T.addJS(T.JSpath+'router/aplayer.js');
-                    //await this.addJS(this.libPath+'Aplayer.js');
-                    //T.aplayer = new Aplayer();
-                    //alert(T.css.ruleLast());
-                    //let k=T.css.addMedia('(min-width:600px)');
-                    //k.addRule('body{color:red}');
-                    //alert(JSON.stringify(T.aplayer.css.rulesData()))
                 });
             }
         }

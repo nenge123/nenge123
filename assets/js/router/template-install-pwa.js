@@ -1,9 +1,9 @@
-const PWA = new class{
+const MyPWA = new class{
     constructor(){
         this.setCache();
         this.setIDB();
         this.setStorage();
-        T.SW.ready.then(()=>this.initPWA());
+        T.SW.ready&&T.SW.ready.then(()=>this.initPWA());
     }
     setCache(){
         let cacheElm = document.getElementById('cachelist');
@@ -34,7 +34,8 @@ const PWA = new class{
         }));
     }
     setStorage(){
-        navigator.storage&&navigator.storage.estimate().then(function(data){
+        let store = I.tryC(navigator.storage,'estimate');
+        I.await(store)&&store.then(function(data){
             let elm = document.getElementById('storeinfo');
             (elm.appendChild(document.createElement('div'))).innerHTML = '<div>容量上限:'+(data.quota/Math.pow(1024,2)).toFixed(0)+'MB</div>'+
                             '<div>已使用:'+(data.usage/Math.pow(1024,2)).toFixed(1)+'MB</div><div>caches不一定准确,他可能是包含整个浏览器缓存.而indexedDB才是本站占用!</div>'+
@@ -101,13 +102,13 @@ const PWA = new class{
                 });
                 const cache = await caches.open(CACHENAME);
                 if(jsondata.script){
-                    cache.put(path+'/script.js',PWA.getResponse('js',jsondata.script));
+                    cache.put(path+'/script.js',this.getResponse('js',jsondata.script));
                     //await T.addJS(path+'/script.js');
                     if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
                     else await T.addJS(path+'/script.js');
                     jsondata.script = true;
                 }
-                cache.put(path+'/config.json',PWA.getResponse('json',JSON.stringify(jsondata)));
+                cache.put(path+'/config.json',this.getResponse('json',JSON.stringify(jsondata)));
                 if(I.obj(jsondata)){
                     if(self.TEMPLATE_INSTALL){
                         await self.TEMPLATE_INSTALL(jsondata);

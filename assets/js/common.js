@@ -1786,7 +1786,7 @@
                 ARG.method = ARG.method||'get';
             }
             ARG.href = I.toGet(ARG.url,ARG.params);
-            if(/^http/.test(ARG.href)&&!ARG.corss&&ARG.href.indexOf(location.origin)===false){
+            if(/^http/.test(ARG.href)&&!ARG.corss&&ARG.href.indexOf(location.origin)===-1){
                 ARG.cross = false;
                 ARG.headers = undefined;
             }

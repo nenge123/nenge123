@@ -77,14 +77,14 @@ var MyTemplate = new class{
         }
         this.readPath(url);
         if(!this.origin) return;
-        let text = await T.ajax({ url, type: 'text' });
+        let text = await T.FetchData({ url, type: 'text' });
         if(!text) return;
         let parser = new m3u8parser(text);
         elmBtn.innerHTML = '解析文件中';
         if (!parser.manifest.segments.length) {
             for(let item of parser.manifest.playlists){
                 //if (item.attributes) Object.assign(ATTR, item.attributes);
-                let nextParser = new m3u8parser(await T.ajax({ url: this.getPath(item.uri), type: 'text' }));
+                let nextParser = new m3u8parser(await T.FetchData({ url: this.getPath(item.uri), type: 'text' }));
                 if (nextParser.manifest.segments.length) {
                     list.push(...nextParser.manifest.segments.map(v => {
                         v.uri = this.getPath(v.uri);

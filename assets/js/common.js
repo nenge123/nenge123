@@ -902,8 +902,8 @@
                         this.connect(e.active,e.type);
                         ok(!0);
                     });
-                    this.SW = SW;
                 });
+                this.SW = SW;
             }else{
                 this.ok = I.Async(!1);
             }

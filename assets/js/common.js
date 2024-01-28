@@ -2382,10 +2382,10 @@
                     const {router,fonts,version} = dataAttr;
                     T.hashVersion = version?parseInt(version):T.version;
                     if(fonts){
-                        fonts.trim().split(',').map(name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
+                        I.toArr(new Set(fonts.split(',')),name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
                     }
                     if(router){
-                        await I.Async(router.trim().split(',').map(name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion)));
+                        await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion)&&console.log(name+'.js')));
                     }
                     T.toEvent('ready');
                 });

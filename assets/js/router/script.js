@@ -1,17 +1,18 @@
 var MySite = new (class{
     constructor(T){
-        const LibStore = T.getTable('libjs');
-        const assetsPath = F.dirname(T.JSpath);
         this.initHead();
     }
     initHead(){
         const navBtn = T.$('.menu-toggle');
-        navBtn&&navBtn.on('click',function(e){
+        navBtn&&navBtn.on('pointerup',function(e){
             e.preventDefault();
             this.classList.toggle('active');
         });
         this.init();
     }
     async init(){
+        T.action['pwa_headers'] = function(e){
+            console.log(e.result);
+        };
     }
 })(Nenge);

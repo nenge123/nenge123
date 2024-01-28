@@ -273,7 +273,7 @@ const T = new class {
         return btoa(crypto&&crypto.randomUUID()||performance.now()+Math.random()).replace(/[^\w]/g,'');
     }
     postMessage(str,bool) {
-        if(bool)return clients.matchAll().then(client=>client.postMessage(str));
+        if(bool)return clients.matchAll().then(client=>client&&client.postMessage(str));
         this.getClient().then(client => client && client.postMessage(str));
     }
     isVisible(client) {
@@ -285,7 +285,7 @@ const T = new class {
             return Client;
         }
         let clients = await self.clients.matchAll();
-        return clients.filter(v => isVisible(v))[0] || Client || clients[0];
+        return clients.filter(v => v&&isVisible(v))[0] || Client || clients[0];
     }
     async updateCaches(method, result,hash) {
         hash = hash===undefined ? '?'+new Date:hash;
@@ -313,8 +313,8 @@ const T = new class {
         });
         if(method)this.postMethod(method);
     }
-    postMethod(method) {
-        return this.postMessage({ method })
+    postMethod(method,result) {
+        return this.postMessage({ method,result})
     }
     isLocal = /(127\.0\.0\.1|localhost)/.test(location.host);
     action = {

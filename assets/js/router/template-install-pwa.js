@@ -3,7 +3,7 @@ var MyPWA = new class{
         this.setCache();
         this.setIDB();
         this.setStorage();
-        T.SW.ready&&T.SW.ready.then(()=>this.initPWA());
+        T.SW&&T.SW.ready.then(()=>this.initPWA());
     }
     setCache(){
         let cacheElm = document.getElementById('cachelist');

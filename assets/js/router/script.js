@@ -1,6 +1,5 @@
 var MySite = new (class{
     constructor(T){
-        T.SW.register('/sw.js?20240128');
         const LibStore = T.getTable('libjs');
         const assetsPath = F.dirname(T.JSpath);
         this.initHead();

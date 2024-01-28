@@ -28,7 +28,7 @@
   {%- if page.css -%}
   <link rel="stylesheet" href="/assets/css/{{ page.css }}.css" />
   {%- endif -%}
-  <script id="common-loader" type="text/javascript" src="/assets/js/common.js" data-router="script,{{ page.router | default:layout.router | default:'' }}" data-fonts="FontAwesome:fonts/fontawesome-webfont.woff2"  defer></script>
+  <script id="common-loader" type="text/javascript" src="/assets/js/common.js" data-sw="true" data-router="script,{{ page.router | default:layout.router | default:'' }}" data-fonts="FontAwesome:fonts/fontawesome-webfont.woff2"  defer></script>
 </head>
 <body>
   <header id="header">

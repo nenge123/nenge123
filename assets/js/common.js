@@ -881,9 +881,24 @@
         }
     }
     class CustomPWA{
-        constructor(T) {
+        constructor(T,file) {
             const SW = navigator.serviceWorker;
             if(SW){
+                SW.register(file).then(e => {
+                const sw = e.installing || e.active;
+                this.sw = sw;
+                this.connect(sw,'register');
+                document.on("visibilitychange", e => document.visibilityState === 'visible' && this.connect(null,e.type));
+                sw.on('statechange', e => {
+                    const sw = e.target;;
+                    if(['redundant', 'activated'].includes(sw.state)){
+                        this.connect(sw,e.type);
+                        T.CF('pwa_' + e.type, e);
+                        this.sw = sw;
+                    }
+                });
+                T.CF('pwa_' + e.type, e);
+            })
                 this.ready = I.Async(ok=>{
                     SW.on('message',async event => {
                         let data = event.data;
@@ -915,24 +930,6 @@
                 JSpath: T.JSpath,
                 ROOT:T.ROOT,
             },sw)
-        }
-        register(file) {
-            const SW = navigator.serviceWorker;
-            SW&&SW.register(file).then(e => {
-                const sw = e.installing || e.active;
-                this.sw = sw;
-                this.connect(sw,'register');
-                document.on("visibilitychange", e => document.visibilityState === 'visible' && this.connect(null,e.type));
-                sw.on('statechange', e => {
-                    const sw = e.target;;
-                    if(['redundant', 'activated'].includes(sw.state)){
-                        this.connect(sw,e.type);
-                        T.CF('pwa_' + e.type, e);
-                        this.sw = sw;
-                    }
-                });
-                T.CF('pwa_' + e.type, e);
-            })
         }
         clear() {
             const SW = navigator.serviceWorker;
@@ -2357,18 +2354,21 @@
                 onLine,
                 readyState,
                 isTouch:I.I(HTMLElement,'ontouchstart'),
-                css:new CustomCSS(),
-                SW:new CustomPWA(T)
+                css:new CustomCSS()
             });
             if(currentScript){
                 T.debug = currentScript.getAttribute('data-debug')?!0:!1;
+                let dataAttr = currentScript.dataset;
+                if(dataAttr.sw){
+                    T.SW = new CustomPWA(T,'/sw.js')
+                }
                 T.docload(async e=>{
                     const LibStore = T.getTable('libjs');
                     const assetsPath = F.dirname(T.JSpath);
-                    const {router,fonts,version} = currentScript.dataset;
+                    const {router,fonts,version} = dataAttr;
                     T.hashVersion = version?parseInt(version):T.version;
                     if(fonts){
-                        await I.Async(fonts.trim().split(',').map(name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0]))));
+                        fonts.trim().split(',').map(name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
                     }
                     if(router){
                         await I.Async(router.trim().split(',').map(name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion)));

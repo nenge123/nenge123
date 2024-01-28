@@ -1,0 +1,26 @@
+---
+layout: default
+router: post
+css: post
+---
+<main id="post">
+  <article class="h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+    <div class="head">
+      <h2>{{ page.title }}</h2>
+      <div class="meta">
+        <span class="p-author">{{ page.author | default: 'Nenge'}}</span>
+        <time class="dt-published">{{ page.date | date: "%Y/%m/%d %H:%M:%S" }}</time>
+        {%- if page.categories -%}
+          <a class="post-cate p-category" href="/categories.html#{{ page.categories }}">{{ page.categories }}</a>
+        {%- endif -%}
+      </div>
+    </div>
+    <div class="post">
+      {{ content }}
+    </div>
+    <div class="foot">
+      <h3>评论</h3>
+      <replay-comments id="lv-container" data-id="city" data-uid="MTAyMC8zNTMzMC8xMTg2Ng=="></replay-comments>
+    </div>
+  </article>
+</main>

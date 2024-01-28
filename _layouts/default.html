@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{ page.lang | default: site.lang | default: " zh-CN" }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1.0,width=device-width">
+  <meta name="x-content-type-options" content="nosniff" />
+  <meta name="renderer" content="webkit">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta http-equiv="cache-control" content="no-cache" />
+  <meta http-equiv="Content-Language" contect="{{ page.lang | default: site.lang | default: "zh-CN" }}">
+  <meta name="generator" contect="jekyll">
+  {%- if page.author -%}
+  <meta name="author" content="{{ page.author }}">
+  {%- endif-%}
+  {%- if page.tags -%}
+  <meta name="keywords" content="{{ page.tags | join: "," }}">
+  {%- endif-%}
+  {%- if page.summary -%}
+  <meta name="description" content="{{ page.summary }}">
+  {%- endif-%}
+  <title>{%- if page.title -%}{{ page.title}} - {%- endif -%}{{ site.title | upcase }}</title>
+  <link rel="stylesheet" href="/assets/css/style.css" />
+  {%- if layout.css -%}
+  <link rel="stylesheet" href="/assets/css/{{ layout.css }}.css" />
+  {%- endif -%}
+  {%- if page.css -%}
+  <link rel="stylesheet" href="/assets/css/{{ page.css }}.css" />
+  {%- endif -%}
+  <script id="common-loader" type="text/javascript" src="/assets/js/common.js" data-router="script,{{ page.router | default:layout.router | default:'' }}" data-fonts="FontAwesome:fonts/fontawesome-webfont.woff2"  defer></script>
+</head>
+<body>
+  <header id="header">
+    <nav>
+      <h1><a href="/">{{ site.title }}</a></h1>
+      <button class="menu-toggle" title="菜单">
+        <span></span>
+      </button>
+      <ol class="menu-nav">
+        <li><a class="home" href="/">能哥网</a></li>
+        <li><a class="emu-down" href="{%- link emulator/helppage/index.html -%}">手机模拟器下载</a></li>
+        <li><a class="emu-talk" href="{%- link emulator/app/emujs/index.html -%}">模拟器讨论</a></li>
+        <li><a class="jekyll" href="/Jekyll.html">Jekyll安装</a></li>
+      </ol>
+    </nav>
+  </header>
+  {{ content }}
+  <footer id="footer" class="h-card">
+    <p>
+      <span>Github Pageus:</span>
+      <a href="//github.com/nenge123/nenge123" class="u-url p-name">Nenge.net</a>
+      <span>&copy; 2021-2024 &bull; all rights reserved.</span>
+    </p>
+    <p>
+      <span class="p-locality">GuangZhou</span>
+      <span class="p-country-name">China</span>
+    </p>
+  </footer>
+</body>
+</html>

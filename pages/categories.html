@@ -1,0 +1,47 @@
+---
+layout: default
+permalink: /categories.html
+---
+<div>
+  <div class="databox">
+    <div class="head">
+      <h3 class="title">分类</h3>
+    </div>
+    <div class="content">
+      <ul class="tag">
+      {%- assign tags_list = site.categories -%}
+        {%- if tags_list.first[0] == null -%}
+          {%- for tag in tags_list -%}
+            <li><a href="#{{ tag }}">{{ tag | capitalize }} <span>{{ site.tags[tag].size }}</span></a></li>
+          {%- endfor -%}
+        {%- else -%}
+          {%- for tag in tags_list -%}
+            <li><a href="#{{ tag[0] }}">{{ tag[0] | capitalize }} <span>{{ tag[1].size }}</span></a></li>
+          {%- endfor -%}
+        {%- endif -%}
+      {%- assign tags_list = nil -%}
+      </ul>
+    </div>
+  </div>
+{%- for tag in site.categories -%}
+<div class="databox">
+  <div class="head">
+    <h3 class="title" id="{{ tag[0] }}">{{ tag[0] | capitalize }}</h3>
+  </div>
+  <div class="content">
+    <ul class="article">
+      {%- assign pages_list = tag[1] -%}
+      {%- for post in pages_list -%}
+        {%- if post.title != null -%}
+        {%- if group == null or group == post.group -%}
+        <li><a href="{{ site.url }}{{ post.url }}">{{ post.title }}</a></li>
+        {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- assign pages_list = nil -%}
+      {%- assign group = nil -%}
+    </ul>
+  </div>
+</div>
+{%- endfor -%}
+</div>

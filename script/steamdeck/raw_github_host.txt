@@ -1,0 +1,6 @@
+151.101.121.229 cdn.jsdelivr.net
+185.199.108.133 raw.githubusercontent.com 
+185.199.111.133 raw.githubusercontent.com 
+185.199.110.133 raw.githubusercontent.com 
+185.199.109.133 raw.githubusercontent.com
+151.101.121.194 github.global.ssl.fastly.net

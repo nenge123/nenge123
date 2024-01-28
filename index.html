@@ -1,0 +1,64 @@
+---
+layout: default
+---
+<main id="index-page">
+  <div class="databox">
+    <div class="head">
+      <h3 class="title">文章列表</h3>
+    </div>
+    <div class="content">
+      <ul class="article">
+        {%- for post in paginator.posts -%}
+        <li>
+          <a href="{{ post.url }}">{{ post.title }}</a>
+        </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+    {%- if paginator.total_pages -%}
+    <div class="foot">
+      <nav>
+        {%- if paginator.previous_page -%}
+        <a class="prev" href="{{ paginator.previous_page_path }}"> 上一页 </a>
+        {%- endif -%}
+        {% assign page_start = paginator.page | minus: 5 %}
+        {% assign page_start2 = paginator.page | plus: 5 %}
+        {% for index in (page_start..page_start2) %}
+        {%- if index>0 and index<=paginator.total_pages -%} {%- if index!=paginator.page -%} {%- if index==1 -%} <a
+          class="num" href="/"> {{ index }} </a>
+          {%- else -%}
+          <a class="num" href="{{ site.paginate_path | replace: ':num', index | relative_url }}"> {{ index }}
+          </a>
+          {%- endif -%}
+          {%- endif -%}
+          {%- endif -%}
+          {% endfor %}
+          {%- if paginator.next_page_path -%}
+          <a class="next" href="{{ paginator.next_page_path }}"> 下一页 </a>
+          {%- endif -%}
+      </nav>
+    </div>
+    {%- endif -%}
+  </div>
+  <div class="databox">
+    <div class="head">
+      <h3 class="title">测试</h3>
+    </div>
+    <div class="content">
+      <ul class="app-icon">
+        <li>
+          <a href="/m3u8.html">
+            <span class="img">&#61501;</span>
+            <span class="a">M3U8解析</span>
+          </a>
+        </li>
+        <li>
+          <a href="/video/online/index.html">
+            <span class="img">&#61448;</span>
+            <span class="a">虚拟影院</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</main>

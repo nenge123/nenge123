@@ -1,0 +1,214 @@
+$fontFace: "FontAwesome";
+@keyframes rotate {
+    0%{
+        transform: rotate(0deg);
+    }
+    100%{
+        transform: rotate(360deg);
+    }
+}
+#page{
+    background-color: #ededed;
+    >.warning-text{
+        text-align: right;
+        padding: 5px;
+        font-size: 12px;
+        >button{
+            margin: 0px 3px;
+        }
+    }
+}
+#loading-page{
+    text-align: center;
+    font-size: 36px;
+    padding: 1em;
+    >span{        
+        display: inline-block;
+        vertical-align: middle;
+        font-family: $fontFace;
+        animation: rotate 1s linear infinite;
+    }
+    &.active{
+        background-color: #e14b4b;
+        color: #fff;
+        >span{
+            display: inline;
+            animation: none;
+        }
+    }
+}
+#page-search{
+    text-align: center;
+    label{
+        margin: 5px auto;
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #ccc;
+        input{
+            padding: 4px;
+            width: 200px;
+            height: 20px;
+            outline: none;
+            border: none;
+            border-right: 1px solid #ccc;
+        }
+        button{
+            height: max-content;
+            width: 60px;
+            border: none;
+            outline: none;
+        }
+    }
+}
+#site-nav{
+    a{
+        text-decoration: none;
+        color: #535252;
+        &+a::before{
+            font-family:#{$fontFace};
+            content: '\f105';
+            margin: 0px 5px;
+        }
+    }
+}
+.nav-page{
+    width: 90%;
+    margin: 10px auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    a,button{text-decoration: none;
+        background-color: #fbfff7;
+        color: #00b6ff;
+        padding: 3px 5px;
+        border-radius: 5px;
+        margin: 3px;
+        border: 1px solid #c3bcbc;
+        font-size: 14px;
+        min-width: 30px;
+        white-space: pre;
+        text-align: center;
+        &:hover,&.active{
+            background-color: #00b6ff;
+            color: #fff;
+        }
+    }
+}
+.tag-list{
+    width: 90%;
+    margin: 10px auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    a,button{
+        text-decoration: none;
+        background-color: #fbfff7;
+        color: #00b6ff;
+        padding: 3px 5px;
+        border-radius: 5px;
+        margin: 3px;
+        border: 1px solid #c3bcbc;
+        font-size: 14px;
+        &:hover{
+            background-color: #00b6ff;
+            color: #fff;
+        }
+        >b{
+            color: #e50d0d;
+        }
+    }
+}
+.sql-item-list{
+    padding: 0.5em;
+    list-style: none;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content:center;
+    align-items: stretch;
+    img{
+        max-width: 100%;
+    }
+    li{
+        width: 240px;
+        border: 1px solid #535252;
+        background-color: #142631;
+        padding: 5px;
+        margin: 5px;
+        text-align: center;
+        a{
+            text-decoration: none;
+            color: #fff;
+        }
+        img{
+            height: 80px;
+            background-color: aliceblue;
+            padding: 1px;
+            border: 1px solid #bbb;
+        }
+        p{
+            text-align: center;
+            margin:.25em;
+            text-align: center;
+            margin: .25em;
+            font-size: 12px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            height: 30px;
+            >b{
+                color: #6aff20;
+                background-color: #595550;
+            }
+        }
+    }
+
+}
+#div-player{
+    width: 98%;
+    margin: 0px auto;
+    overflow: hidden;
+    >video{
+        width: 100%;
+        background-color: transparent;
+        background-repeat: no-repeat;
+        background-size: cover;
+        &::-webkit-media-controls{
+            background: transparent;
+        }
+    }
+    button{
+        font-size: 12px;
+        background-color: transparent;
+        border: none;
+        opacity: .8;
+        outline: none;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        margin: auto;
+        transform: scale(10);
+        font-family: #{$fontFace};
+        display: none;
+        color: #fff;
+        &:hover{
+            color: rgb(13, 166, 255);
+        }
+        &[disabled]{
+            transform:none;
+        }
+    }
+    &:not([class~='active']){
+        position: relative;
+        button{
+            display:inline-block;
+        }
+    }
+}

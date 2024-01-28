@@ -1,0 +1,60 @@
+---
+layout: default
+permalink: /template-install-pwa.html
+router: template-install-pwa
+css: template-pwa
+---
+<div>
+    <div class="databox" id="install-pwa" hidden>
+        <div class="head">
+            <h3 class="title">虚拟地址安装</h3>
+        </div>
+        <div class="content">
+            <label>
+                <input type="text" name="url" class="input" disabled>
+            </label>
+            <p>                
+                <label>
+                    <button type="button" name="install" class="btn" hidden>重新安装</button>
+                </label>
+                <label>
+                    <button type="button" name="go" class="btn" hidden>返回地址</button>
+                </label>
+            </p>
+            <p class="warning-text">提醒:虚拟地址是不存在的地址,需要<code>ServiceWorker</code>初始化后才能使用.</p>
+            <div id="pwa-result"></div>
+        </div>
+    </div>
+    <div class="databox">
+        <div class="head">
+            <h3 class="title">储存空间使用情况</h3>
+        </div>
+        <div class="content">
+            <div id="storeinfo">
+
+            </div>
+        </div>
+    </div>
+    <div class="databox">
+        <div class="head">
+            <h3 class="title"><code>Caches</code>缓存管理</h3>
+        </div>
+        <div class="content">
+            <p>NENGE-NET:本站主缓存,缓存当前网站某些页面!</p>
+            <p>OTHER-SITE-DATA 为外站图片资源引用,可随时删除,无太大影响</p>
+            <ul class="article" id="cachelist">
+
+            </ul>
+        </div>
+    </div>
+    <div class="databox">
+        <div class="head">
+            <h3 class="title"><code>indexeDB</code>缓存管理</h3>
+        </div>
+        <div class="content">
+            <ul class="article" id="indexlist">
+
+            </ul>
+        </div>
+    </div>
+</div>

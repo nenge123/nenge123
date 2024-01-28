@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="cmn">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black"> 
+<meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height">
+<title>存档下载</title>
+</head>
+<body>
+	<style>li{margin-bottom: 15px;}</style>
+	<div>44670已经更新了核心,默认支持RTC和金手指</div>
+	<div>原版地址:<a href="//gba.44670.org">gba.44670.org</a></div>
+	<div>修改版:<a href="//44vba.nenge.net">44gba.nenge.net</a></div>
+<div class="result"></div>
+<script type="text/javascript" src="localforage.js"></script>
+<script type="text/javascript">
+	let opendb = v=>{
+		let s = indexedDB.open(v.name,v.version);
+		return new Promise(callback=>{
+			s.onsuccess = e=>{
+				callback(s.result);
+			}
+		});
+	};
+	let getall = tsotre=>{
+		return new Promise(callback=>{
+						tsotre.getAllKeys().onsuccess = e => {
+							callback(e.target.result)
+						};
+		})
+	};
+	let down = async (db,store,key)=>{
+		let DB = window[db];
+		let tdb = await DB.transaction([store], 'readonly');
+		let tsotre = await tdb.objectStore(store);
+		tsotre.get(key).onsuccess = e => {
+			let data = e.target.result;
+			if(data instanceof Uint8Array){
+				let href = URL.createObjectURL(new Blob([data]));
+				let a = document.createElement("a");
+				a.href = href;
+				a.download = key;
+				a.click();
+				a.remove();
+			}
+		};
+
+	};
+	(async w=>{
+		let db = await indexedDB.databases(),html="";
+		console.log(db);
+		let dbobj = await Promise.all(db.map(async v=>{
+			let sdb = await opendb(v);
+			return [v.name,sdb];
+		}));
+		await Promise.all(dbobj.map(async v=>{
+			if(!v[1].objectStoreNames.length) return;
+			//html +=`<h3>${v[0]}</h3><ul>`;
+			await Promise.all(
+				Array.from(v[1].objectStoreNames).map(async store=>{
+
+					let tdb = await v[1].transaction([store], 'readonly');
+					let tsotre = await tdb.objectStore(store);
+					let keylist = await getall(tsotre);
+					if(!keylist.length) return ;
+					window[v[0]] = v[1];
+					html+=`<h4>${v[0]} - ${store}</h4><ul>`;
+					keylist.forEach(keyitem=>{
+						html+=`<li data-key="${keyitem}" data-db="${v[0]}" data-store="${store}">${keyitem}</li>`;
+					});
+					html+='</ul>';
+				})
+			);
+			//html+= `</ul><hr>`;
+		}));
+		document.querySelector('.result').innerHTML = html;
+		document.querySelector('.result').addEventListener('pointerup',e=>{
+			let elm = e.target;
+			console.log(elm);
+			if(elm instanceof Element&&elm.tagName=='LI'){
+				let db = elm.getAttribute('data-db');
+				let store = elm.getAttribute('data-store');
+				let key = elm.getAttribute('data-key');
+				down(db,store,key);
+			}
+		})
+	})(window)
+</script>
+</html>

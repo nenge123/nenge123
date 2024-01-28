@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title data-lang="">RetroArch MGBA模拟器</title>
+</head>
+<body>
+<canvas id="canvas" style="position: absolute;left:0;right:0;top:0;bottom:0;background-color: #000;"></canvas>
+<script type="text/javascript">
+var canvas = document.querySelector('#canvas');
+    canvas.width = window.innerWidth;
+    canvas.height =window.innerHeight;
+var Module = new class{
+    noInitialRun = true;//布尔值 true 不主动运行Module.callMain
+    arguments = ["-v", "--menu"];//-v代表输出日志  --menu打开RetroArch系统,如果是路径则直接打开游戏rom
+    preRun = [];
+    postRun = [];
+    totalDependencies = 0;
+    canvas = canvas; //设置canvas 兼容处理
+    //wasmBinary = Uint8Array; //设置wasm的数据值,如果不设置,js载入后会自动下载xxx.wasm
+    print(text){} //控制台输出
+    printErr(text){} //日志输出 注意这个函数this不一定是Module
+    async onRuntimeInitialized(){//wasm加载完毕时运行
+        let romU8 = new Uint8Array(await (await fetch('1.gba')).arrayBuffer());
+        if(!window.FS)window.FS = Module.FS;
+
+        let FS = window.FS;
+        /*可选 挂载硬盘 通用indexedDB 本地储存*/
+        var MYDFS = new NengeDisk();
+        MYDFS.SetModule(this);
+        MYDFS.setMEMFS(FS.filesystems.MEMFS);
+        let path = "/home/web_user/retroarch/userdata";
+        FS.createPath('/',path, !0, !0);//创建一个目录
+        await MYDFS.syncfs(FS.mount(MYDFS, {}, path).mount); //挂载一个MYDFS硬盘,确保已经同步完毕
+        /*通用本地储存结束*/
+        FS.writeFile('1.gba',romU8, {
+            canOwn: true, //不触发sync事件
+            encoding: "binary"
+        });
+        this.arguments[1] = '1.gba';
+        this.callMain(this.arguments);
+        //因为涉及音频事件,手机必须含有交互事件
+        //canvas.addEventListener('click',e=>this.callMain(this.arguments),{once:true,passive: false,});
+    }
+}
+</script>
+<script type="text/javascript" src="js/mgba_libretro.js"></script>
+</body>
+</html>

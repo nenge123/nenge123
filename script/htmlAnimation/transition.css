@@ -1,0 +1,101 @@
+#nav-icon {
+    color: #1e293b;
+    border-color: rgba(0, 0, 0, .1);
+    height: 2px;
+    width: 1.25em;
+    background: currentColor;
+    border-radius: 10px;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle
+}
+
+#nav-icon:after,
+#nav-icon:before {
+    content: "";
+    display: block;
+    height: inherit;
+    width: inherit;
+    border-radius: inherit;
+    background: inherit;
+    position: absolute;
+    left: 0;
+    transition: inherit
+}
+
+#nav-icon:before {
+    top: -.45em
+}
+
+#nav-icon:after {
+    bottom: -.45em
+}
+
+@media screen and (max-width:767px) {
+    #nav-btn {
+        width: 30px;
+        display: inline-block;
+        margin: 5px;
+        padding: 5px;
+        aspect-ratio: auto 30 / 30
+    }
+
+    #nav-btn+#nav-body {
+        transition: height .5s
+    }
+
+    #nav-btn.active #nav-icon {
+        transform: rotate(45deg);
+        transition: top .3s, bottom .3s, transform .3s .3s, opacity 0s .3s
+    }
+
+    #nav-btn.active #nav-icon:before {
+        top: 0;
+        transform: rotate(-90deg)
+    }
+
+    #nav-btn.active #nav-icon:after {
+        bottom: 0;
+        opacity: 0
+    }
+
+    #nav-btn.active+#nav-body {
+        height: var(--nav-height);
+        overflow: hidden
+    }
+
+    #nav-btn:not([class~='active'])+#nav-body {
+        height: 0;
+        overflow: hidden
+    }
+}
+
+@media screen and (min-width:768px) {
+    #nav-btn {
+        display: none
+    }
+}
+
+#nav-body {
+    display: flex;
+    justify-content: flex-start;
+    align-content: flex-start
+}
+
+@media screen and (max-width:767px) {
+    #nav-body {
+        height: 0;
+        overflow: hidden;
+        flex-wrap: nowrap;
+        flex-direction: column;
+        align-items: flex-start
+    }
+}
+
+@media screen and (min-width:768px) {
+    #nav-body {
+        flex-wrap: wrap;
+        flex-direction: row;
+        align-items: center
+    }
+}

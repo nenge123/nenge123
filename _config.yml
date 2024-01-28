@@ -1,0 +1,119 @@
+title: 能哥网
+email: m@nenge.net
+admin: Nenge
+description: 懵逼树下懵逼的你和我.
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
+twitter_username: nenge123
+github_username:  nenge123
+#baseurl:     /
+#url:         http://localhost:4000
+
+# Build settings
+timezone: Asia/ShangHai
+future: true
+encoding: UTF-8
+markdown_ext: "markdown,mkdown,mkdn,mkd,md"
+
+
+#theme: minima
+sass:
+    sass_dir: _scss
+    style: compressed
+# Owner/author information
+page:
+  author: "Nenge"
+paginate: 30
+paginate_path: "/article/:num"
+permalink: /p/:title.html
+#permalink: /article/:year/:month/:title.html
+# Conversion
+safe: true
+markdown: kramdown
+highlighter: rouge
+lsi: false
+excerpt_separator: "\n\n"
+incremental: false
+
+# Markdown Processing
+kramdown:
+  input: GFM
+  extensions:
+    - autolink
+    - footnotes
+    - smart
+#  toc_levels: 1..6
+  hard_wrap: false
+  auto_ids: true
+  auto_ids_prefix: 'nav-'
+  transliterated_header_ids: true
+  footnote_nr: 1
+  entity_output: as_char
+  toc_levels: 1..6
+  smart_quotes: lsquo,rsquo,ldquo,rdquo
+  enable_coderay: true
+  syntax_highlighter: none # rouge | 
+
+  # Rouge Highlighter in Kramdown › http://kramdown.gettalong.org/syntax_highlighter/rouge.html
+  # span, block element options fall back to global
+  syntax_highlighter_opts:
+    # Rouge Options › https://github.com/jneen/rouge#full-options
+    #line_numbers: true # bad idea, spans don't need linenos and would inherit this option
+#    class: line-%1
+#    highlight_line_class: 'rouge-line'
+    wrap: true  #flase 去掉多余的套环
+    css_class: 'rouge-pre' #套环css
+    line_numbers: false #是否显示行号
+    start_line: 1
+    table_class: rouge-code-table #行号模式设置表格css
+    gutter_class: rouge-code-gutter  #行号模式设置表格 行号css
+    code_class: rouge-code-body  #行号模式设置表格 代码容器div css
+#    inline_theme: nil
+#    scope: '.rouge-hl'
+#    debug: true
+toc:
+  min_level: 1
+  max_level: 6
+  ordered_list: false
+  no_toc_section_class: no_toc_class
+  list_id: toc
+  list_class: section-nav
+  sublist_class: ''
+  item_class: toc-entry
+  item_prefix: toc-
+
+
+# Plugins (previously gems:)
+plugins:
+  - jekyll-paginate
+  - jekyll-feed
+#  - kramdown-parser-gfm
+#  - jekyll-toc-generator
+#  - jekyll-toc
+
+# mimic GitHub Pages with --safe
+#whitelist:
+#  - jekyll-paginate
+#  - jekyll-feed
+#  - kramdown-parser-gfm
+#  - jekyll-toc
+
+# Exclude from processing.
+# The following items will not be processed, by default.
+# Any item listed under the `exclude:` key here will be automatically added to
+# the internal "default list".
+#
+# Excluded items can be processed by explicitly listing the directories or
+# their entries' file path in the `include:` list.
+#
+# exclude:
+#   - .sass-cache/
+#   - .jekyll-cache/
+#   - gemfiles/
+#   - Gemfile
+#   - Gemfile.lock
+#   - node_modules/
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/

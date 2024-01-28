@@ -1,0 +1,24 @@
+@mixin Animation($duration: '', $infinite: '', $func: '') {
+    /*定义一个动画引用 */
+    $name: rote-#{unique-id()};
+    @keyframes #{$name} {
+        @content;
+    }
+
+    @if not $infinite or $infinite== '' {
+        $infinite: infinite;
+    }
+
+    @if not $func or $func== '' {
+        $func: ease-in-out;
+    }
+
+    @if not $duration or $duration== '' {
+        $duration: 0.5s;
+    }
+
+    animation-name: $name;
+    animation-duration: $duration;
+    animation-timing-function: $func;
+    animation-iteration-count: $infinite;
+}

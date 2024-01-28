@@ -11,5 +11,8 @@ var MySite = new (class{
             e.preventDefault();
             this.classList.toggle('active');
         });
+        this.init();
+    }
+    async init(){
     }
 })(Nenge);

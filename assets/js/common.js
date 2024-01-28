@@ -1544,7 +1544,7 @@
                 return u8;
             }
             if(!type) type = I.blob(u8)?u8.type:'js';
-            return URL.createObjectURL(I.blob(u8) ? u8 : new Blob([u8], {type: F.getMime(type)}));
+            return URL.createObjectURL(I.blob(u8) ? u8 : new Blob([u8], {type:F.getMime(type)}));
         },
         /**
          * 释放URL资源
@@ -1910,7 +1910,7 @@
                             if(headers['filename']){
                                 filename = headers['filename'];
                             }
-                            if(type!='head'&&ARG.charset)type = 'buf';
+                            if(type!='head'&&ARG.charset)type = 'u8';
                             result.push(headers);
                             switch (type) {
                                 case 'u8':

@@ -3,6 +3,8 @@
     let {I,F} = T;
     let view = document.getElementsByName('view')[0];
     let downts = document.getElementsByName('downts')[0];
+    const url = 'http://'+location.host.replace(':88','').replace(':4000','')+'/xiunobbs4/upload/cmvodurl/1/1.m3u8';
+    document.getElementsByName('name')[0].value = url;
     T.css.addRule('#result div{margin:10px auto;margin: 10px auto;border: 1px dashed;padding: 10px 5px;}');
     view.on('pointerdown',async function(event){
         event.stopPropagation();
@@ -27,18 +29,13 @@
 }).call(Nenge);
 class downTS{
     constructor(url,elm){
-        this.download(url,elm);
+        this.download(url,elm).catch(e=>alert(e));
     }
     async download(url,downts){
         const t = this;
         let ctrler;
         const list = [];
         const ATTR = {};
-        const respone = new Response(new ReadableStream({
-            start(ctrl) {
-                ctrler = ctrl;
-            }
-        }));
         if(!self.m3u8parser){            
             await T.addLib('m3u8-parser.zip');
             await T.addLib('aes-decryptor.zip');
@@ -85,13 +82,14 @@ class downTS{
         div.innerHTML = '<p>'+url+'</p><p class="states">0/'+list.length+'</p>';
         let states = div.querySelector('.states');
         downts&&(downts.disabled = !0);
+        let chunks = [];
         for(let frag of list){
-            let databuf = await T.ajax({ url: frag.uri, type: 'buf' });
+            let databuf = await T.FetchData({ url: frag.uri});
             let buffer;
             if (frag.key) {
                 if (frag.key.href) {
                     if (!keyData[frag.key.href]) {
-                        let buf = await T.ajax({ url: frag.key.href, type: 'buf' });
+                        let buf = await T.FetchData({ url: frag.key.href});
                         keyData[frag.key.href] = buf.buffer;
                     }
                     buffer = keyData[frag.key.href];
@@ -107,15 +105,14 @@ class downTS{
                 aes.destroy();
                 aes = null;
             }
-            ctrler.enqueue(new Uint8Array(databuf));
+            chunks.push(databuf);
             index++;
             states.innerHTML = index+'/'+list.length;
 
         }
-        ctrler.close();
         downts&&(downts.disabled = !1);
         if(!index) return;
-        T.download('download.ts', await respone.blob(),{type:'video/mp3t'});
+        T.download('download.ts',new Blob(chunks,{type:'video/mp2t'}),'m3u8');
     }
     readPath(url){
         let urlInfo = new URL(url);

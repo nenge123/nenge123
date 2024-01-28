@@ -244,32 +244,53 @@
             button.once('click', async function () {
                 if (this.disabled) return;
                 this.disabled = !0;
-                if (!self.Hls) {
-                    await T.addLib('hls.light.min.zip', (a, b) => {
-                        button.innerHTML = '播放组件加载进度:' + a + '/' + b;
-                    });
-                }
-                player.classList.add('active');
-                const hls = new self.Hls();
-                hls.loadSource(this.getAttribute('data-url'));
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_LOADED, function () {
-                    let nav = addend(playerinfo,'nav');
-                    nav.classList.add('tag-list');
-                    let btn = addend(nav,'button');
-                    btn.innerHTML = '下载视频';
-                    btn.on('pointerdown', function (event) {
-                        if (this.disabled) return;
-                        event.stopPropagation();
-                        event.preventDefault();
-                        this.disabled = !0;
-                        hls.download(title + '.ts', (a, b) => {
-                            this.innerHTML = a + '/' + b;
-                        });
-                    });
-                });
                 video.volume = 0.4;
-                video.play();
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = this.getAttribute('data-url');
+                    video.addEventListener('canplay', function () {
+                      let nav = addend(playerinfo,'nav');
+                      nav.classList.add('tag-list');
+                      let btn = addend(nav,'button');
+                      btn.innerHTML = '下载视频';
+                      btn.on('pointerdown',async  function (event) {
+                          if (this.disabled) return;
+                          this.disabled = !0;
+                          event.stopPropagation();
+                          event.preventDefault();
+                          MyTemplate.downVideo(video.src,this);
+                      });
+                      video.play();
+                    });
+                  }else{
+                    if (!self.Hls) {
+                        await T.addLib('hls.light.min.zip', (a, b) => {
+                            button.innerHTML = '播放组件加载进度:' + a + '/' + b;
+                        });
+                    }
+                    if(exports.Hls.isSupported()){
+                        const hls = new self.Hls();
+                        hls.loadSource(this.getAttribute('data-url'));
+                        hls.attachMedia(video);
+                        hls.on(Hls.Events.MANIFEST_LOADED,function(){
+                            let nav = addend(playerinfo,'nav');
+                            nav.classList.add('tag-list');
+                            let btn = addend(nav,'button');
+                            btn.innerHTML = '下载视频';
+                            btn.on('pointerdown', function (event) {
+                                if (this.disabled) return;
+                                event.stopPropagation();
+                                event.preventDefault();
+                                this.disabled = !0;
+                                hls.download(title + '.ts', (a, b) => {
+                                    this.innerHTML = a + '/' + b;
+                                });
+                            });
+        
+                        });
+                        video.play();
+                    }
+                  }
+                  player.classList.add('active');
             });
             let nav2 = addend(playerinfo,'nav');
             nav2.classList.add('tag-list');
@@ -289,7 +310,10 @@
             const TP = this;
             let result = getId('pwa-result');
             const setResult = (str, elm) => {
-                if (!elm) elm = result.insertBefore(creatElm('div'), result.children[0]);
+                if (!elm){
+                    elm = result.insertBefore(creatElm('div'), result.children[0]);
+                    elm.classList.add('wbox');
+                }
                 elm.innerHTML = str;
                 return elm;
             };
@@ -372,7 +396,8 @@
             db.close();
             SQL._sqlite3_free();
             SQL._free();
-            let x = setResult('完成数据同步:');
+            let x = setResult('数据已同步,可以返回地址,亦可以进行本地导入:');
+            x.classList.add('warn');
             let imgbtn2 = addend(x,'button');
             imgbtn2.innerHTML = '上传网盘中图片资源';
             imgbtn2.on('click', async function () {
@@ -384,7 +409,7 @@
                 T.upload(async files =>TP.TEMPLATE_READ_DATA(files,jsondata,(a,b)=>setResult(a,b)));
             });
             if (jsondata.datasource) {
-                jsondata.datasource.forEach(v => setResult('网盘中数据资源:' + v));
+                jsondata.datasource.forEach(v => setResult('网盘中数据资源:' + v).classList.add('success'));
             }
         },
         async TEMPLATE_READ_DATA(files,jsondata,progress){

@@ -903,7 +903,6 @@
                         ok(!0);
                     });
                 });
-                this.SW = SW;
             }else{
                 this.ok = I.Async(!1);
             }
@@ -918,7 +917,8 @@
             },sw)
         }
         register(file) {
-            this.SW&&this.SW.register(file).then(e => {
+            const SW = navigator.serviceWorker;
+            SW&&SW.register(file).then(e => {
                 const sw = e.installing || e.active;
                 this.sw = sw;
                 this.connect(sw,'register');
@@ -935,7 +935,8 @@
             })
         }
         clear() {
-            this.SW.getRegistrations().then(sws => I.Each(sws, sw => sw.unregister()));
+            const SW = navigator.serviceWorker;
+            SW&&SW.getRegistrations().then(sws => I.Each(sws, sw => sw.unregister()));
         }
     }
     Object.assign(EventTarget.prototype, {

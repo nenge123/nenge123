@@ -3,8 +3,8 @@
     let {I,F} = T;
     let view = document.getElementsByName('view')[0];
     let downts = document.getElementsByName('downts')[0];
-    const url = 'http://'+location.host.replace(':88','').replace(':4000','')+'/xiunobbs4/upload/cmvodurl/1/1.m3u8';
-    document.getElementsByName('name')[0].value = url;
+    //const url = 'http://'+location.host.replace(':88','').replace(':4000','')+'/xiunobbs4/upload/cmvodurl/1/1.m3u8';
+    //document.getElementsByName('name')[0].value = url;
     T.css.addRule('#result div{margin:10px auto;margin: 10px auto;border: 1px dashed;padding: 10px 5px;}');
     view.on('pointerdown',async function(event){
         event.stopPropagation();

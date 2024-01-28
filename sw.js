@@ -181,22 +181,23 @@ const T = new class {
             }
             cachetime = cacheResult.headers.get('last-modified');
         }
-        let response = await fetch(request).catch(e=>null);
+        let response = await (cacheResult ? fetch(request,{method:'HEAD'}):fetch(request)).catch(e=>null);
         /** 跨域缓存不能操作headers */
         if(url&&response){
             let fetchtime = response.headers.get('last-modified');
             if(fetchtime&&fetchtime==cachetime){
                 /** 缓存未变化终止下载 */
-                response.body.cancel();
                 return cacheResult;
             }else{
                 /**本地缓存数据 */
+                response = await fetch(request);
                 cache.put(url,response.clone());
                 return response;
 
             }
         }else if(response){
             /** 缓存数据 */
+            response = await fetch(request);
             cache.put(request,response.clone());
             return response;
         }

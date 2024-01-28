@@ -885,20 +885,34 @@
             const SW = navigator.serviceWorker;
             if(SW){
                 SW.register(file).then(e => {
-                const sw = e.installing || e.active;
-                this.sw = sw;
-                this.connect(sw,'register');
-                document.on("visibilitychange", e => document.visibilityState === 'visible' && this.connect(null,e.type));
-                sw.on('statechange', e => {
-                    const sw = e.target;;
-                    if(['redundant', 'activated'].includes(sw.state)){
-                        this.connect(sw,e.type);
-                        T.CF('pwa_' + e.type, e);
-                        this.sw = sw;
-                    }
+                    const sw = e.installing || e.active;
+                    this.sw = sw;
+                    this.connect(sw,'register');
+                    document.on("visibilitychange", e => document.visibilityState === 'visible' && this.connect(null,e.type));
+                    sw.on('statechange', e => {
+                        const sw = e.target;;
+                        if(['redundant', 'activated'].includes(sw.state)){
+                            this.connect(sw,e.type);
+                            T.CF('pwa_' + e.type, e);
+                            this.sw = sw;
+                        }
+                    });
+                    T.CF('pwa_' + e.type, e);
+                    T.docload(function(){
+                        let foot = T.$('#footer');
+                        if(foot){
+                            let elm = foot.appendChild(document.createElement('button'));
+                            elm.innerHTML = '刷新PWA';
+                            elm.once('click',function(){
+                                this.remove();
+                                SW.ready.then(sw=>{
+                                    sw.update();
+                                    location.reload();
+                                });
+                            });
+                        }
+                    });
                 });
-                T.CF('pwa_' + e.type, e);
-            })
                 this.ready = I.Async(ok=>{
                     SW.on('message',async event => {
                         let data = event.data;

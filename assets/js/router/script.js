@@ -15,4 +15,12 @@ var MySite = new (class{
             console.log(e.result);
         };
     }
+    execMime = [
+        ['png', /^89504E470D0A1A0A/],
+        ["gif", /^47494638(3761|3961)/],
+        ["jpg", /^FFD8FFE000104A464946/],
+        ["webp", /^52494646\w{8}57454250/],
+        ["pdf", /^255044462D312E/],
+        ["bmp", /^424D\w{4}0{8}/]
+    ];
 })(Nenge);

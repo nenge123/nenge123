@@ -40,7 +40,7 @@ var MyPost = new class{
                 I.toArr((attr.file||'').split(','),(src,i)=>{
                     let btn = P.append(elmK,'button');
                     btn.classList.add('btn');
-                    let file = '/script/'+src,type = F.getExt(src),mime = type;
+                    let file = '/script/'+src,type = T.getExt(src),mime = type;
                     let title2;
                     let mimemap = {
                         js:'javascript'

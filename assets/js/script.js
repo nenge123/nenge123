@@ -44,7 +44,7 @@ const T=Nenge,I=T.I,F=T.F;
             let sourcetitle = (I.Attr(elm,'sourcetitle')||'').split('||');
                 if(script){
                     T.SP(script,(src,i)=>{
-                        let file = '/script/'+src,type = F.getExt(src),mime = type,
+                        let file = '/script/'+src,type = T.getExt(src),mime = type,
                             elmDiv = T.$append(elm,T.$ct('div',!1,'click-files-btn'));
                             var mimemap = {
                                 js:'javascript'

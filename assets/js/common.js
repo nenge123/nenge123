@@ -456,7 +456,7 @@
                             let keyfile;
                             I.toArr(contentBlob,(entry,index)=>{
                                 const filename = T.LibPad+entry[0];
-                                const filetype = F.getMime(entry[0]);
+                                const filetype = T.getMime(entry[0]);
                                 const datafile = I.File([entry[1]],filename,filetype);
                                 this.put(Object.assign({contents:datafile},options,{filename,filesize:datafile.size}),filename);
                                 if(filename===key){
@@ -1264,14 +1264,19 @@
          * @returns {String}
          */
         toStr(o, a){
-			return o.toString(a)
+            if(I.array(o)) return o.join(a||'');
+			return o?o.toString(a):'';
 		},
+        buf2str(o){
+            return I.toArr(o,v=>I.toStr(v,16).padStart(2,'0'));
+        },
         /**
          * 大写
          * @param {String} o 
          * @returns {String}
          */
         toUp(o){
+            if(I.array(o))return I.toUp(I.toStr(o));
 			return o && o.toUpperCase()
 		},
         /**
@@ -1280,6 +1285,7 @@
          * @returns {String}
          */
         toLow(o){
+            if(I.array(o))return I.toLow(I.toStr(o));
 			return o && o.toLowerCase()
 		},
         /**
@@ -1302,7 +1308,7 @@
         toCp437(o){
             const CP437 = "\0☺☻♥♦♣♠•◘○◙♂♀♪♫☼►◄↕‼¶§▬↨↑↓→←∟↔▲▼ !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~⌂ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\n";
             if(I.buf(o)){
-                return I.toArr(o,v=>CP437.charAt(v)).join("");
+                return I.toStr(I.toArr(o,v=>CP437.charAt(v)));
             }else if(I.str(o)){
                 return I.toU8(I.toArr(o,v=>CP437.indexOf(v)));
             }
@@ -1542,167 +1548,6 @@
         }
     };
     /**
-     * 其他操作
-     */
-    const F = {
-        /**
-         * 创建URL
-         * @param {*} u8 
-         * @param {*} type 
-         * @returns 
-         */
-        URL(u8, type) {
-            if (I.str(u8) && u8.length < 255 && /^(blob|http|\/{1,2}(?!\*)|\.\/|.+\/)[^\n]*?$/i.test(u8)) {
-                return u8;
-            }
-            if(!type) type = I.blob(u8)?u8.type:'js';
-            return URL.createObjectURL(I.blob(u8) ? u8 : new Blob([u8], {type:F.getMime(type)}));
-        },
-        /**
-         * 释放URL资源
-         * @param {*} url 
-         * @returns 
-         */
-        reURL(url) {
-            return URL.revokeObjectURL(url);
-        },
-        /**
-         * 获取目录
-         * @param {*} url 
-         * @returns 
-         */
-        getPath(url) {
-            const p = '/';
-            return url && url.split(p).slice(0, -1).join(p) + p
-        },
-        getName(str) {
-            return I.str(str)?str.split('/').pop().split(/\?/)[0].split(/\#/)[0]:"";
-        },
-        dirname(path,num){
-            if(!num)num=1;
-            return this.getPath(path).split('/').slice(0,0-num-1).join('/')+'/';
-        },
-        getExt(name) {
-            return I.toLow(F.getName(name).split(".").pop());
-        },
-        getKey(name) {
-            return I.R(F.getName(name), /\.\w+$/);
-        },
-        exttype: {},
-        setMime() {
-            F.extlist = I.toObj(
-                [].concat(...(
-                    "text;css,scss,sass,xml,vml,style:css,htm:html|php,txt:plain,m3u8:plain,js:javascript\n" +
-                    "image;jpg,jpeg,png,gif,webp,avif,apng,heic,svg:svg+xml\n" +
-                    "font;woff,woff2,ttf,otf\n" +
-                    "application;pdf,json,js:javascript,*:octet-stream,zip:zip|x-zip-compressed,rar:rar|x-rar-compressed,7z:7z|x-7z-compressed,wasm\n"+
-                    "audio;ogg,wma,mp3,m4a:mp4\n"+
-                    "video;mp4").split(/\n/).map(a => {
-                        a = a.split(/;/);
-                        return [].concat(...a[1].split(/,/).map(c => {
-                            c = c.split(/:/);
-                            let e = c[1]&&c[1].split('|')||[c[0]];
-                            let arr=[];
-                            for(let i=0;;i++){
-                                if(!e[i])break;
-                                let d = a[0] + '/' +e[i];
-                                F.exttype[d] = c[0];
-                                arr.push([c[0],d])
-                            }
-                            return arr;
-                        }))
-                    })))
-        },
-        getMime(type) {
-            if (!F.extlist) F.setMime();
-            type = type && I.toLow(type) || "";
-            if (F.exttype[type]) return type;
-            if (/^\w+\/[\w\;]+$/.test(type)) return type;
-            else if (!/^\w+$/.test(type)) type = F.getExt(type) || type.split('.').pop();
-            return F.extlist[type] || F.extlist['*'];
-        },
-        Mime(type){
-            let F = this;
-            if (!F.extlist) F.setMime();
-            if(F.exttype[type]) return F.exttype[type];
-            type = type&&type.split('/').pop().split(';')[0].split('+')[0].trim();
-            if(type){
-                if(type.indexOf('x-')!==false){
-                    type = type.match(/x\-(\w+)/);
-                    if(type[1]){
-                        return type[1]
-                    }  
-                }else if(/^\w+$/.test(type)){
-                    return type;
-                }
-            }
-            return '';
-        },
-        FilterHeader(headers) {
-            I.toArr(headers, (entry) => {
-                let content = decodeURI(entry[1]);
-                if(!!I.num(content))content = parseFloat(content);
-                else if(/GMT$/.test(content))content = new Date(content);
-                if (/content-/.test(entry[0])) {
-                    headers[entry[0]] = content;
-                    let name = I.R(entry[0], /content-/);
-                    switch (name) {
-                        case "disposition":
-                            let attachName = content.match(/^attachment;\s*filename=[\"\']+?(.+)[\"\']+?$/i);
-                            if (attachName && attachName[1]) {
-                                headers.filename = decodeURI(attachName[1]);
-                            }
-                            break;
-                        case "length":
-                            headers.filesize = I.toInt(content) || 0;
-                        case "password":
-                            headers[name] = content;
-                            break;
-                        case "type":
-                            content = I.toLow(content);
-                            let v = content.split(/;/);
-                            headers[name] = v[0].trim();
-                            if (v[1])
-                                headers.charset = I.toLow(v[1].split(/=/).pop().trim());
-
-                            break;
-                    }
-                }else{
-                    headers[entry[0]] = content;
-                }
-            });
-            return headers;
-        },
-        execMime: [
-            ["7z", /^377ABCAF271C/],
-            ["rar", /^52617221/],
-            ["zip", /^504B0304/],
-            ['png', /^89504E470D0A1A0A/],
-            ["gif", /^47494638(3761|3961)/],
-            ["jpg", /^FFD8FFE000104A464946/],
-            ["webp", /^52494646\w{8}57454250/],
-            ["pdf", /^255044462D312E/],
-            ["bmp", /^424D\w{4}0{8}/]
-        ],
-        CheckExt(u8) {
-            if(I.blob(u8)&&u8.type){
-                let type = F.Mime(u8.type);
-                if(type) return type;
-            }
-            const u8buf = I.toU8(u8.slice(0, 16));
-            const execMime = this.execMime;
-            return I.await(u8buf) ? u8buf.then(x => F.execType(x,execMime)) : F.execType(u8buf,execMime);
-        },
-        execType(s,execMime) {
-            let text = I.str(s) ? s : I.toUp(I.Mach(s, v => I.toStr(v, 16).padStart(2, 0)).join(""));
-            for(let i=0;i<execMime.length;i++){
-                if (execMime[i][1].test(text)) {
-                    return execMime[i][0];
-                }
-            }
-        }
-    };
-    /**
      * 主对象
      */
     const T = new class NengeObj extends EventTarget {
@@ -1766,20 +1611,20 @@
          */
         FetchARG(ARG,options){
             ARG =  Object.assign({ url:location.href},I.str(ARG)?{url: ARG}:ARG,options);
-            ARG.key = ARG.key===!0?F.getName(ARG.url)||'index.html':ARG.key||ARG.url;
+            ARG.key = ARG.key===!0?this.getName(ARG.url)||'index.html':ARG.key||ARG.url;
             if(ARG.libjs){
                 if(/\.zip$/.test(ARG.key)){
                     ARG.key = ARG.key.replace(/\.zip$/,'.js');
                     ARG.unpack = !0;
                 }
-                ARG.key = T.LibPad+F.getName(ARG.key);
+                ARG.key = T.LibPad+this.getName(ARG.key);
                 if(!ARG.version)ARG.version = this.version;
                 ARG.type = 'blob';
             }
             ARG.headers = Object.assign({ 'ajax-fetch': 'ajax' }, ARG.headers || {});
             if(ARG.json){
                 ARG.post = I.obj(ARG.json)?I.toJson(ARG.json):ARG.json;
-                ARG.headers['accept'] = F.getMime(I.obj(post)?'json':'*');
+                ARG.headers['accept'] = T.getMime(I.obj(post)?'json':'*');
                 delete ARG.json;
             }else if(ARG.post){
                 ARG.post = I.toPost(ARG.post);
@@ -1809,8 +1654,8 @@
                 I.tryC(ARG,'error',!0,msg);
             });
             if(response){
-                const headers = F.FilterHeader(I.toObj(response.headers));
-                const filename = headers['filename']|| F.getName(ARG.key);
+                const headers = this.FilterHeader(I.toObj(response.headers));
+                const filename = headers['filename']|| this.getName(ARG.key);
                 const filetype = headers['type'];
                 if (response.status != 200) {
                     let result;
@@ -1871,14 +1716,48 @@
             }
             return response;
         }
+        FilterHeader(headers) {
+            I.toArr(headers, (entry) => {
+                let content = decodeURI(entry[1]);
+                if(!!I.num(content))content = parseFloat(content);
+                else if(/GMT$/.test(content))content = new Date(content);
+                if (/content-/.test(entry[0])) {
+                    headers[entry[0]] = content;
+                    let name = I.R(entry[0], /content-/);
+                    switch (name) {
+                        case "disposition":
+                            let attachName = content.match(/^attachment;\s*filename=[\"\']+?(.+)[\"\']+?$/i);
+                            if (attachName && attachName[1]) {
+                                headers.filename = decodeURI(attachName[1]);
+                            }
+                            break;
+                        case "length":
+                            headers.filesize = I.toInt(content) || 0;
+                        case "password":
+                            headers[name] = content;
+                            break;
+                        case "type":
+                            content = I.toLow(content);
+                            let v = content.split(/;/);
+                            headers[name] = v[0].trim();
+                            if (v[1])
+                                headers.charset = I.toLow(v[1].split(/=/).pop().trim());
+
+                            break;
+                    }
+                }else{
+                    headers[entry[0]] = content;
+                }
+            });
+            return headers;
+        }
         async FetchLibUrl(name,progress,version){
             if(!this.libjsBlob[name]){
-                this.libjsBlob[name] = F.URL(await T.getTable(T.LibStore).fetch({url:T.libPath+name,libjs:!0,version:version||T.version,progress}));
+                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:this.libPath+name,libjs:!0,version:version||this.version,progress}));
             }
             return this.libjsBlob[name];
         }
         async addLib(name,progress,version){
-            let key = F.getKey(name);
             if(!this.libjsBlob[name]){
                 await this.addJS(await this.FetchLibUrl(name,progress,version),null,/\.css$/.test(name));
             }
@@ -1893,10 +1772,11 @@
              * @type {XMLHttpRequest}
              */
             const request = new XMLHttpRequest;
-            if(!ARG||!ARG.method)ARG = this.FetchARG(ARG);
+            const T = this;
+            if(!ARG||!ARG.method)ARG = T.FetchARG(ARG);
             return I.Async(back => {
                 const result = [];
-                let filename = F.getName(ARG.url);
+                let filename = T.getName(ARG.url);
                 request.on('readystatechange', e => {
                     switch (request.readyState) {
                         case request.UNSENT:
@@ -1907,7 +1787,7 @@
                         case request.HEADERS_RECEIVED:
                             //2
                             const headerText = I.tryC(request, request.getAllResponseHeaders);
-                            const headers = F.FilterHeader(
+                            const headers = T.FilterHeader(
                                 I.toObj(
                                     I.Mach(
                                         headerText.trim().split(/\n+/),
@@ -1954,7 +1834,7 @@
                             break;
                         case request.DONE:
                             //4
-                            let htype = result[0]&&result[0]['type']||F.getMime();
+                            let htype = result[0]&&result[0]['type']||T.getMime();
                             if(ARG.type!='head'){
                                 let contents = request.response;
                                 if (I.blob(contents)) {
@@ -2030,22 +1910,22 @@
                     if(!filename)filename=data.name;
                     return zipWriter.add(data.name, new zip.BlobReader(data), { onprogress: (current, total) =>progress&&progress(current, total,data.name,'pack'), password });
                 }
-                if(I.buf(contents))contents = I.File([contents],'unknow.data',F.getMime('*'));
+                if(I.buf(contents))contents = I.File([contents],'unknow.data',T.getMime());
                 if (I.blob(contents)) {
                     await addFile(contents);
                 } else {
                     I.ForOf(contents,async itemdata=>{
                         if(I.array(itemdata)){
-                            itemdata = I.File([itemdata[1]],itemdata[0],F.getMime(itemdata[0]));
+                            itemdata = I.File([itemdata[1]],itemdata[0],T.getMime(itemdata[0]));
                         }else if(I.buf(itemdata)){
-                            itemdata = I.File([itemdata],'unknow.data',F.getMime('*'));
+                            itemdata = I.File([itemdata],'unknow.data',T.getMime());
                         }
                         await addFile(itemdata);
 
                     });
                 }
                 await zipWriter.close();
-                return I.File([await zipFileWriter.getData()],filename+'.zip',F.getMime('zip'));
+                return I.File([await zipFileWriter.getData()],filename+'.zip',T.getMime('zip'));
             }else{
                 const pwText = 'Enter password.';
                 const ReaderList = await new zip.ZipReader(I.toBlob(contents)).getEntries().catch(e=>null);
@@ -2079,10 +1959,14 @@
         }
         async Decompress(contents,progress,password){
             const pwText = 'Enter password.';
-            let ext = await F.CheckExt(contents);
-            if(/zip$/.test(ext))return T.ZipCompress(contents,progress,password);
+            let buf = contents.slice(0,6);
+            if(I.blob(buf))buf = await I.toU8(buf);
+            buf = I.toUp(I.buf2str(buf));
+            if(/^504B0304/.test(buf))return T.ZipCompress(contents,progress,password);
+            let ext = /^52617221/.test(buf)?'rar':/^377ABCAF271C/.test(buf)?'7z':undefined;
+            if(!ext) return null;
             contents = await I.toU8(contents);
-            const url = await T.FetchLibUrl(/7z$/.test(ext) ?"extract7z.zip":"libunrar.min.zip", progress);
+            const url = await T.FetchLibUrl(/7z$/.test(ext) ?'extract7z.zip':'libunrar.min.zip', progress);
             if (!url) return null;
             return I.Async(complete => {
                 let result,worker = new Worker(url);
@@ -2131,10 +2015,10 @@
         addJS(buf, cb, iscss) {
             return I.Async(back => {
                 iscss = iscss || I.buf(buf) && (buf.type && /css$/.test(buf.type) || buf.name && /css$/.test(buf.name));
-                const url = F.URL(buf);
+                const url = this.URL(buf);
                 const script = (!iscss ? document.body : document.head).appendChild(document.createElement(iscss ? 'link' : 'script'));
                 const data = {
-                    type: F.getMime(iscss ? 'css' : 'js'),
+                    type: this.getMime(iscss ? 'css' : 'js'),
                     href: url,
                     src: url,
                     rel: StyleSheet.name,
@@ -2152,7 +2036,27 @@
             });
 
         }
-        
+        /**
+         * 创建URL
+         * @param {*} u8 
+         * @param {*} type 
+         * @returns 
+         */
+        URL(u8, type) {
+            if (I.str(u8) && u8.length < 255 && /^(blob|http|\/{1,2}(?!\*)|\.\/|.+\/)[^\n]*?$/i.test(u8)) {
+                return u8;
+            }
+            if(!type) type = I.blob(u8)?u8.type:'js';
+            return URL.createObjectURL(I.blob(u8) ? u8 : new Blob([u8], {type:this.getMime(type)}));
+        }
+        /**
+         * 释放URL资源
+         * @param {*} url 
+         * @returns 
+         */
+        reURL(url) {
+            return URL.revokeObjectURL(url);
+        }
         customElement(myelement,funs) {
             if(!customElements.get(myelement)){                
                 /**
@@ -2207,11 +2111,11 @@
             if (/^(http|blob:|data:)/.test(buf)) {
                 href = buf;
                 if (!name && /^(http|blob:)/.test(buf))
-                    name = F.getName(buf);
+                    name = this.getName(buf);
 
             } else if (buf) {
                 if(I.file(buf))name=buf.name;
-                href = F.URL(buf, type);
+                href = this.URL(buf, type);
 
             }
             if (!name)name = 'explame.html';
@@ -2330,6 +2234,80 @@
             template = template.replace(/\{[\w\-\_]+?\}/,'');
             return template;
         }
+        /**
+         * 获取目录
+         * @param {*} url 
+         * @returns 
+         */
+        getPath(url) {
+            const p = '/';
+            return url && I.toStr(url.split(p).slice(0, -1),p) + p
+        }
+        getName(str) {
+            return I.str(str)?str.split('/').pop().split(/\?/)[0].split(/\#/)[0]:'';
+        }
+        dirname(path,num){
+            if(!num)num=1;
+            return I.toStr(this.getPath(path).split('/').slice(0,-1-num),'/')+'/';
+        }
+        getExt(name) {
+            return I.toLow(this.getName(name).split(".").pop());
+        }
+        getKey(name) {
+            return I.R(this.getName(name), /\.\w+$/);
+        }
+        exttype = {};
+        setMime() {
+            this.extlist = I.toObj(
+                [].concat(...(
+                    "text;css,scss,sass,xml,vml,style:css,htm:html|php,txt:plain,m3u8:plain,js:javascript\n" +
+                    "image;jpg,jpeg,png,gif,webp,avif,apng,heic,svg:svg+xml\n" +
+                    "font;woff,woff2,ttf,otf\n" +
+                    "application;pdf,json,js:javascript,*:octet-stream,zip:zip|x-zip-compressed,rar:rar|x-rar-compressed,7z:7z|x-7z-compressed,wasm\n"+
+                    "audio;ogg,wma,mp3,m4a:mp4\n"+
+                    "video;mp4").split(/\n/).map(a => {
+                        a = a.split(/;/);
+                        return [].concat(...a[1].split(/,/).map(c => {
+                            c = c.split(/:/);
+                            let e = c[1]&&c[1].split('|')||[c[0]];
+                            let arr=[];
+                            for(let i=0;;i++){
+                                if(!e[i])break;
+                                let d = a[0] + '/' +e[i];
+                                this.exttype[d] = c[0];
+                                arr.push([c[0],d])
+                            }
+                            return arr;
+                        }))
+                    })))
+        }
+        getMime(type) {
+            if (!this.extlist) this.setMime();
+            type = type && I.toLow(type) || "";
+            if (this.exttype[type]) return type;
+            if (/^\w+\/[\w\;]+$/.test(type)) return type;
+            else if (!/^\w+$/.test(type)){
+                type = this.getExt(type) || type.split('.').pop();
+            }
+            return this.extlist[type] || this.extlist['*'];
+        }
+        Mime(type){
+            let T = this;
+            if (!T.extlist) T.setMime();
+            if(T.exttype[type]) return T.exttype[type];
+            type = type&&type.split('/').pop().split(';')[0].split('+')[0].trim();
+            if(type){
+                if(type.indexOf('x-')!==false){
+                    type = type.match(/x\-(\w+)/);
+                    if(type[1]){
+                        return type[1]
+                    }  
+                }else if(/^\w+$/.test(type)){
+                    return type;
+                }
+            }
+            return '';
+        }
         action = {};
         docload(f) {
             if (document.readyState == 'complete') I.tryC(this,f);
@@ -2349,7 +2327,7 @@
             let { language, onLine } = navigator;
             let { readyState, currentScript, characterSet } = document;
             let src = currentScript && currentScript.src.split(/\?/),
-                JSpath = src && F.getPath(src[0]),
+                JSpath = src && T.getPath(src[0]),
                 langs = I.toLow(language).split("-");
             if (langs[0] == "zh") {
                 if (langs[1] == "cn")
@@ -2359,11 +2337,11 @@
 
             }
             Object.assign(T, {
-                I, F,
+                I,
                 JSpath,
                 libPath: JSpath + 'lib/',
-                ROOT: F.dirname(JSpath,2),
-                i18nName: langs.join("-"),
+                ROOT: T.dirname(JSpath,2),
+                i18nName: I.toStr(langs,"-"),
                 langName: language,
                 onLine,
                 readyState,
@@ -2378,7 +2356,7 @@
                 }
                 T.docload(async e=>{
                     const LibStore = T.getTable('libjs');
-                    const assetsPath = F.dirname(T.JSpath);
+                    const assetsPath = T.dirname(T.JSpath);
                     const {router,fonts,version} = dataAttr;
                     T.hashVersion = version?parseInt(version):T.version;
                     if(fonts){
@@ -2393,7 +2371,7 @@
         }
     };
     window.onerror = e=>alert(e);
-    Object.assign(exports, { T, F, I });
+    Object.assign(exports, { T, I });
     I.defines(exports, {
         Nenge: T
     }, 1);

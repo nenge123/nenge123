@@ -28,13 +28,13 @@ var MyTemplate = new class{
         let url = jsondata.url;
         let limit = jsondata.limit;
         if(jsondata.script){
-            if(!T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
+            if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
             else await T.addJS(path+'/script.js');
         }
         if(window.TEMPLATE_UPDATE_BUTTON){
             TEMPLATE_UPDATE_BUTTON(this);
         }
-        switch(F.getName(location.href)){
+        switch(T.getName(location.href)){
             case '':
             case 'index.html':{
                 return TEMPLATE_INDEX(jsondata);

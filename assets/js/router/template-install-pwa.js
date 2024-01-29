@@ -45,7 +45,7 @@ var MyPWA = new class{
 
     }
     getResponse(name,data){
-        return new Response(new Blob([data]),{status:200,headers:{"content-type":F.getMime(name),'content-length':data.size||data.byteLength||data.length}});
+        return new Response(new Blob([data]),{status:200,headers:{"content-type":T.getMime(name),'content-length':data.size||data.byteLength||data.length}});
     }
     async initPWA(){
         document.getElementById('install-pwa').hidden = !1;

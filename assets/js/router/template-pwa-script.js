@@ -5,7 +5,7 @@
         return new Response(new Blob([data]), {
             status: 200,
             headers: {
-                'content-type': F.getMime(name),
+                'content-type': T.getMime(name),
                 'content-length': data.size || data.byteLength || data.length
             }
         });
@@ -124,7 +124,7 @@
                     let a = addend(li,'a');
                     a.href = 'player.html?id=' + id;
                     let img = new Image();
-                    img.src = id + '.' + F.getExt(data['img']);
+                    img.src = id + '.' + T.getExt(data['img']);
                     img.once('error', function () {
                         this.src = data['img'];
                     });
@@ -182,7 +182,7 @@
                 return;
             }
             let img = new Image();
-            img.src = id + '.' + F.getExt(data['img']);
+            img.src = id + '.' + T.getExt(data['img']);
             img.once('error', function () {
                 this.src = data['img'];
             });
@@ -454,7 +454,7 @@
             let num = 0;
             I.toArr(data, entry => {
                 cache.put(path + '/' + entry[0], getResponse(...entry));
-                if(elm)elm.innerHTML = F.getName(entry[0]) + '写入 ' + entry[0];
+                if(elm)elm.innerHTML = T.getName(entry[0]) + '写入 ' + entry[0];
                 num++;
             });
             if(elm)elm.innerHTML = '图片写入完成!共写入' + num + '条图片数据!';
@@ -467,7 +467,7 @@
                 url,
                 unpack: !0,
                 progress(a, b, c, d) {
-                    elm.innerHTML = F.getName(url) + ' ' + d + (a * 100 / b).toFixed(0) + '%';
+                    elm.innerHTML = T.getName(url) + ' ' + d + (a * 100 / b).toFixed(0) + '%';
                 },
                 error() {
                     alert('地址可能不存在,无法写入')
@@ -554,8 +554,17 @@
                     if(this.disabled)return;
                     T.upload(async files=>{
                         this.disabled = !0;
-                        await TP.TEMPLATE_READ_DATA(files,jsondata);
+                        let elm = T.$('#page-result');
+                        let div;
+                        if(elm){
+                            div = elm.insertBefore(document.createElement('div'),elm.children[0]);
+                        }
+                        await TP.TEMPLATE_READ_DATA(files,jsondata,text=>{
+                            div&&(div.innerHTML=text);
+                        });
                         this.disabled = !1;
+                        div.innerHTML = '写入完成,点击刷新';
+                        div.once('click',function(){location.reload();});
                     });
                 },
                 '导入图片':function(e,jsondata){

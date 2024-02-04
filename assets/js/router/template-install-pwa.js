@@ -104,9 +104,12 @@ var MyPWA = new class{
                 if(jsondata.script){
                     cache.put(path+'/script.js',this.getResponse('js',jsondata.script));
                     //await T.addJS(path+'/script.js');
-                    if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
-                    else await T.addJS(path+'/script.js');
+                    //if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
+                    //else await T.addJS(path+'/script.js');
                     jsondata.script = true;
+                }
+                if(CACHE_SOURCE[path].mode=='sql'){
+                    await T.addJS('/assets/js/router/template-pwa-script.js');
                 }
                 cache.put(path+'/config.json',this.getResponse('json',JSON.stringify(jsondata)));
                 if(I.obj(jsondata)){

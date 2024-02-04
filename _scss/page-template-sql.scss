@@ -1,3 +1,4 @@
+$mobileWidth: 767px;
 $fontFace: "FontAwesome";
 @keyframes rotate {
     0%{
@@ -37,29 +38,49 @@ $fontFace: "FontAwesome";
         }
     }
 }
-#page-search{
-    text-align: center;
-    label{
-        margin: 5px auto;
-        display: inline-flex;
+#top-info{
+    @media screen and (max-width: #{$mobileWidth}) {
+        text-align: center;
+        >div{
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    }
+    @media screen and (min-width: #{$mobileWidth+1}) {
+        display: flex;
         flex-direction: row;
+        justify-content: space-around;
         align-items: center;
-        justify-content: center;
-        border: 1px solid #ccc;
-        input{
-            padding: 4px;
-            width: 200px;
-            height: 20px;
-            outline: none;
-            border: none;
-            border-right: 1px solid #ccc;
+        flex-wrap: wrap;
+        padding: 5px;
+    }
+    .search{
+        text-align: center;
+        label{
+            margin: 5px auto;
+            display: inline-flex;
+            flex-direction: row;
+            align-items: stretch;
+            justify-content: center;
+            border: 1px solid #ccc;
+            input{
+                padding: 4px;
+                width: 200px;
+                height: 20px;
+                outline: none;
+                border: none;
+                border-right: 1px solid #ccc;
+            }
+            button{
+                width: 60px;
+                border: none;
+                outline: none;
+                background: #838383;
+                color: #fff;
+                height: auto;
+            }
         }
-        button{
-            height: max-content;
-            width: 60px;
-            border: none;
-            outline: none;
-        }
+
     }
 }
 #site-nav{
@@ -130,18 +151,39 @@ $fontFace: "FontAwesome";
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    justify-content:center;
+    justify-content:space-around;
     align-items: stretch;
     img{
         max-width: 100%;
     }
     li{
-        width: 240px;
         border: 1px solid #535252;
         background-color: #142631;
-        padding: 5px;
-        margin: 5px;
         text-align: center;
+        @media screen and (max-width: #{$mobileWidth}) {
+            width: 45%;
+            margin-bottom: 15px;
+
+        }
+        @media screen and (min-width: #{$mobileWidth+1}) {
+            width: 240px;
+            padding: 5px;
+            margin: 5px;
+            p{
+                margin: .25em;
+                text-overflow: ellipsis;
+                overflow: hidden;
+                height: 30px;
+            }
+        }
+        p{
+            text-align: center;
+            font-size: 12px;
+            >b{
+                color: #6aff20;
+                background-color: #595550;
+            }
+        }
         a{
             text-decoration: none;
             color: #fff;
@@ -151,20 +193,6 @@ $fontFace: "FontAwesome";
             background-color: aliceblue;
             padding: 1px;
             border: 1px solid #bbb;
-        }
-        p{
-            text-align: center;
-            margin:.25em;
-            text-align: center;
-            margin: .25em;
-            font-size: 12px;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            height: 30px;
-            >b{
-                color: #6aff20;
-                background-color: #595550;
-            }
         }
     }
 

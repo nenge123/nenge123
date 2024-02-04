@@ -248,20 +248,20 @@
                 if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = this.getAttribute('data-url');
                     video.addEventListener('canplay', function () {
-                      let nav = addend(playerinfo,'nav');
-                      nav.classList.add('tag-list');
-                      let btn = addend(nav,'button');
-                      btn.innerHTML = '下载视频';
-                      btn.on('pointerdown',async  function (event) {
-                          if (this.disabled) return;
-                          this.disabled = !0;
-                          event.stopPropagation();
-                          event.preventDefault();
-                          MyTemplate.downVideo(video.src,this);
-                      });
                       video.play();
                     });
-                  }else{
+                    let nav = addend(playerinfo,'nav');
+                    nav.classList.add('tag-list');
+                    let btn = addend(nav,'button');
+                    btn.innerHTML = '下载视频';
+                    btn.on('pointerdown',async  function (event) {
+                        if (this.disabled) return;
+                        this.disabled = !0;
+                        event.stopPropagation();
+                        event.preventDefault();
+                        MyTemplate.downVideo(video.src,this);
+                    });
+                }else{
                     if (!self.Hls) {
                         await T.addLib('hls.light.min.zip', (a, b) => {
                             button.innerHTML = '播放组件加载进度:' + a + '/' + b;
@@ -289,8 +289,9 @@
                         });
                         video.play();
                     }
-                  }
-                  player.classList.add('active');
+                }
+                player.classList.add('active');
+                video.play();
             });
             let nav2 = addend(playerinfo,'nav');
             nav2.classList.add('tag-list');

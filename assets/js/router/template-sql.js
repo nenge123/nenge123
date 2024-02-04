@@ -28,8 +28,9 @@ var MyTemplate = new class{
         let url = jsondata.url;
         let limit = jsondata.limit;
         if(jsondata.script){
-            if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
-            else await T.addJS(path+'/script.js');
+            await T.addJS('/assets/js/router/template-pwa-script.js');
+            //if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
+            //else await T.addJS(path+'/script.js');
         }
         if(window.TEMPLATE_UPDATE_BUTTON){
             TEMPLATE_UPDATE_BUTTON(this);
@@ -142,7 +143,7 @@ var MyTemplate = new class{
         }
         if(!index) return;
         elmBtn.innerHTML = '下载完毕,手机的朋友,请在文件处导出到<b>QQ影音</b>进行播放';
-        T.download('download.ts',new Blob(chunks,{type:'video/mp2t'}),'m3u8');
+        T.download('download.ts',this.URL(new Blob(chunks,{type:'video/mp2t'}),'mp2t'));
     }
     readPath(url){
         let urlInfo = new URL(url);

@@ -60,7 +60,8 @@
         NamedNodeMap,
         Event,
         KeyboardEvent,
-        IDBCursorWithValue
+        IDBCursorWithValue,
+        Notification
     } = self;
     /**
      * 本地数据 库操作
@@ -445,6 +446,7 @@
                         mode:'fetch',
                         timestamp:new Date,
                     };
+                    if(ARG.options)Object.assign(options,ARG.options);
                     if(ARG.version)options.version = ARG.version;
                     if(headers&&headers['last-modified'])options.modified = headers['last-modified'];
                     let type;
@@ -882,72 +884,101 @@
     }
     class CustomPWA{
         constructor(T,file) {
-            const SW = navigator.serviceWorker;
+            let SW = navigator.serviceWorker;
             if(SW){
                 SW.register(file).then(e => {
+                    if(e.installing){
+                        this.connect(e.installing,'register');
+                    }
                     const sw = e.installing || e.active;
-                    this.sw = sw;
-                    this.connect(sw,'register');
-                    document.on("visibilitychange", e => document.visibilityState === 'visible' && this.connect(null,e.type));
                     sw.on('statechange', e => {
-                        const sw = e.target;;
-                        if(['redundant', 'activated'].includes(sw.state)){
-                            this.connect(sw,e.type);
-                            T.CF('pwa_' + e.type, e);
-                            this.sw = sw;
+                        const sw2 = e.target;;
+                        if(['redundant', 'activated'].includes(sw2.state)){
+                            this.connect(sw2,'register');
                         }
                     });
-                    T.CF('pwa_' + e.type, e);
-                    T.docload(function(){
-                        let foot = T.$('#footer');
-                        if(foot){
-                            let elm = foot.appendChild(document.createElement('button'));
-                            elm.innerHTML = '刷新PWA';
-                            elm.once('click',function(){
-                                this.remove();
-                                SW.ready.then(sw=>{
-                                    sw.update();
-                                    location.reload();
-                                });
-                            });
-                        }
-                    });
+                    T.toEvent('pwaload');
                 });
-                this.ready = I.Async(ok=>{
-                    SW.on('message',async event => {
-                        let data = event.data;
-                        if (I.obj(data)) {
-                            if(I.fn(T.action[data.clientID])){
-                                return T.CF(data.clientID, data);
-                            }else if(I.fn(T.action[data.method])){
-                                return T.CF(data.method, data);
-                            }else{
-                                console.log(data);
-                            }
-                        }
-                    });
-                    SW.on('controllerchange', e =>this.connect(null,e.type));
-                    I.await(SW.ready)&&SW.ready.then(e =>{
-                        this.connect(e.active,e.type);
-                        ok(!0);
-                    });
-                });
+                this.ready = (async ()=>{
+                    let SW = navigator.serviceWorker;
+                    if(I.await(SW.ready)){
+                        SW.on('message',this._message);
+                        SW.on('controllerchange', e =>this.connect(e.active,'register'));
+                        await SW.ready;
+                        return !0;
+                    }
+                    return !1;
+                })();
+                if(Notification)!Notification.permission&&Notification.requestPermission();
             }else{
                 this.ok = I.Async(!1);
             }
         }
-        connect(sw,state){
-            T.postMessage({
-                action: state||'connect',
-                DB_NAME: T.DB_NAME,
-                DB_STORE_MAP: T.DB_STORE_MAP,
-                JSpath: T.JSpath,
-                ROOT:T.ROOT,
-            },sw)
+        async _message(event){
+            let data = event.data;
+            let source = event.source;
+            if(T.isLocal)console.log(data);
+            if (I.obj(data)) {
+                let clientID = data.clientID;
+                let method = data.method;
+                if(clientID&&I.fn(T.action[clientID])){
+                    await T.action[clientID](data,source);
+                }else if(method&&I.fn(T.action[method])){
+                    await T.action[method](data,source);
+                }
+                clientID = null;
+                method = null;
+                data = null;
+            }
         }
-        clear() {
-            const SW = navigator.serviceWorker;
-            SW&&SW.getRegistrations().then(sws => I.Each(sws, sw => sw.unregister()));
+        async connect(sw,state){
+            sw = sw||(await navigator.serviceWorker.ready).active;
+            sw.postMessage({method: state||'connect'})
+        }
+        async clear() {
+            let sws = await navigator.serviceWorker.getRegistrations();
+            I.Each(sws, sw => sw.unregister());
+        }
+        async permission(name){
+            let permission = await navigator.permissions.query({name}).catch(e=>null);
+            return permission&&permission.state=='granted'?!0:!1;
+        }
+        async notice(title,options){
+            if(!await this.permission('notifications')) return;
+            (await navigator.serviceWorker.ready).showNotification(title,options);
+        }
+        async sync(tag){
+            if(!await this.permission('background-sync')) return;
+            (await navigator.serviceWorker.ready).sync(tag);
+        }
+        async periodicSync(tag,options,sw){
+            if(!await this.permission('periodic-background-sync')) return;
+            (await navigator.serviceWorker.ready).periodicSync.register(tag,options);
+        }
+        async update(){
+            let sw = await navigator.serviceWorker.ready;
+            return sw.update();
+        }
+        async setPush(key){
+            if(!await this.permission('push')) return;
+            let sw = await navigator.serviceWorker.ready;
+            let state = await sw.pushManager.permissionState({
+                userVisibleOnly:!0,
+                applicationServerKey:key
+            });
+            console.log(state);
+            if(state=='granted'){
+                let sub = await sw.pushManager.getSubscription();
+                if(!sub){
+                    sub = await sw.pushManager.subscribe({
+                        userVisibleOnly:!0,
+                        applicationServerKey:key
+                    });
+    
+                }
+                console.log(sub);
+
+            }
         }
     }
     Object.assign(EventTarget.prototype, {
@@ -1753,13 +1784,13 @@
         }
         async FetchLibUrl(name,progress,version){
             if(!this.libjsBlob[name]){
-                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:this.libPath+name,libjs:!0,version:version||this.version,progress}));
+                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:/^http/.test(name)?name:this.libPath+name,libjs:!0,version:version||this.version,progress}));
             }
             return this.libjsBlob[name];
         }
         async addLib(name,progress,version){
             if(!this.libjsBlob[name]){
-                await this.addJS(await this.FetchLibUrl(name,progress,version),null,/\.css$/.test(name));
+                await this.addJS(await this.FetchLibUrl(name,progress,version),!0,/\.css$/.test(name));
             }
         }
         /**
@@ -1881,13 +1912,19 @@
                 return async function(data){
                     if(!I.nil(data.result)){
                         back(data.result||null);
-                        delete T.action[clientID];
+                        delete T.action[data.clientID];
                     }else if(data.state=='progress'){
                         progress&&progress(data.current, data.total,data.filename);
                     }else if(data.state=='password'){
-                        let password = pwFn? await pwFn(data.password):prompt('请输入密码', data.password);
-                        data.result = password;
-                        T.postMessage(data);
+                        let workerId = data.workerId;
+                        let password = data.password;
+                        if(I.buf(password)) password = I.decode(password,'gbk');
+                        if(!password&&I.str(pwFn))password = pwFn;
+                        else password = I.fn(pwFn) ? await pwFn(data.password):prompt('请输入密码', data.password);
+                        if(!data.isUTF8&&password){
+                            password = T.str2gb2312(password);
+                        }
+                        T.postMessage({workerId,result:password||false});
                     }
 
                 }
@@ -1895,7 +1932,7 @@
         }
         async ZipCompress(contents,progress,password,pack){
             if (I.nil(exports.zip)) {
-                await T.addJS(await T.FetchLibUrl('zip.min.js',progress));
+                await T.addLib('zip.min.js');
             }
             if(I.bool(password)){
                 pack = password; 
@@ -1928,13 +1965,20 @@
                 return I.File([await zipFileWriter.getData()],filename+'.zip',T.getMime('zip'));
             }else{
                 const pwText = 'Enter password.';
-                const ReaderList = await new zip.ZipReader(I.toBlob(contents)).getEntries().catch(e=>null);
+                const ReaderList = await new zip.ZipReader(new zip.BlobReader(I.blob(contents)?contents:I.toBlob(contents))).getEntries().catch(e=>null);
                 let result;
                 const getData = (entry)=>{
-                    return entry.getData(new zip.Uint8ArrayWriter(), {password:entry.encrypted&&password!==false?password:undefined, onprogress: (current, total) =>progress&&progress(current, total,entry.filename,'unpack')}).catch(async e=>{
+                    let rawPassword;
+                    if(entry.encrypted){
+                        if(password){
+                            rawPassword = I.buf(password)?password:entry.filenameUTF8==false?this.str2gb2312(password):I.encode(password);
+                        }
+                    }
+                    return entry.getData(new zip.Uint8ArrayWriter(), {rawPassword, onprogress: (current, total,file) =>progress&&progress(current, total,entry.filename,'unpack',file)}).catch(async e=>{
                         let msg = e.message;
                         if(password===false) return;
                         if(msg == zip.ERR_INVALID_PASSWORD||msg==zip.ERR_ENCRYPTED){
+                            if(I.buf(password)) password = I.decode(password,'gbk');
                             password = prompt(pwText, password);
                             if(password){
                                 return await getData(entry);
@@ -2012,10 +2056,67 @@
 
             })
         }
+        str2gb2312(str) {
+            const ranges = [
+                [0xA1, 0xA9, 0xA1, 0xFE],
+                [0xB0, 0xF7, 0xA1, 0xFE],
+                [0x81, 0xA0, 0x40, 0xFE],
+                [0xAA, 0xFE, 0x40, 0xA0],
+                [0xA8, 0xA9, 0x40, 0xA0],
+                [0xAA, 0xAF, 0xA1, 0xFE],
+                [0xF8, 0xFE, 0xA1, 0xFE],
+                [0xA1, 0xA7, 0x40, 0xA0],
+            ];
+            let codes = new Uint16Array(23940);
+            let i = 0;
+            for (const [b1Begin, b1End, b2Begin, b2End] of ranges) {
+                for (let b2 = b2Begin; b2 <= b2End; b2++) {
+                    if (b2 !== 0x7F) {
+                        for (let b1 = b1Begin; b1 <= b1End; b1++) {
+                            codes[i++] = b2 << 8 | b1;
+                        }
+                    }
+                }
+            }
+            let table =  new Uint16Array(65536);
+            let gbkstr = new TextDecoder('gbk').decode(codes);
+            for (let i = 0; i < gbkstr.length; i++) {
+                table[gbkstr.charCodeAt(i)] = codes[i];
+            }
+            gbkstr = null;
+            codes = null;
+            let buf = [];
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                if (code < 0x80) {
+                    buf.push(code);
+                    continue;
+                }
+                const gbk = table.at(code);
+                if (gbk&&gbk !== 0xFFFF) {
+                    buf.push(gbk);
+                    buf.push(gbk >> 8);
+                } else if (code === 8364) {
+                    // 8364 == '€'.charCodeAt(0)
+                    // Code Page 936 has a single-byte euro sign at 0x80
+                    buf.push(0x80);
+                } else {
+                    buf.push(63);
+                    if(buf<=0xFF){
+                        //ISO-8859-1
+                    }
+                }
+            }
+            table = null;
+            return new Uint8Array(buf)
+        }
         addJS(buf, cb, iscss) {
             return I.Async(back => {
-                iscss = iscss || I.buf(buf) && (buf.type && /css$/.test(buf.type) || buf.name && /css$/.test(buf.name));
+                if(!iscss&&iscss!==false){
+                    iscss = I.str(buf)&&/\.css$/.test(buf) || I.file(buf)&&/css$/.test(buf.name)||false;
+                }
                 const url = this.URL(buf);
+                if(!I.fn(cb)) cb = false;
                 const script = (!iscss ? document.body : document.head).appendChild(document.createElement(iscss ? 'link' : 'script'));
                 const data = {
                     type: this.getMime(iscss ? 'css' : 'js'),
@@ -2154,20 +2255,6 @@
             const R = this, A = R.action[action];
             return I.fn(A) ? I.tryA(o, A, a) : undefined;
         }
-        GL(name, arg) {
-            if (!I.none(T.language[name]))
-                name = T.language[name];
-
-            return arg ? T.toReplace(name, arg) : name;
-        }
-        toReplace(str, arg) {
-            if (I.str(arg)) {
-                str = I.R(str, /{value}/, arg);
-            } else if (I.obj(arg)) {
-                I.toArr(arg, v => I.R(str, new RegExp(v[0], "g"), v[1]));
-            }
-            return str;
-        }
         async toZip(files, progress, password) {
             return T.ZipCompress(files,progress,password,!0);
         }
@@ -2195,17 +2282,27 @@
         }
         async postMessage(str,sw) {
             if(!sw){
-                sw = navigator.serviceWorker.ready;
-                if(I.await(sw)){
-                    sw = (await sw).active;
-                }else if(this.SW.sw){
-                    sw = this.SW.sw;
-                }
+                let workerCtrl = await navigator.serviceWorker.ready;
+                sw = workerCtrl.active;
             }
+            if(I.await(sw)) sw = await sw;
             sw&&sw.postMessage(str);
         }
         getRandStr(){
             return btoa(I.tryC(crypto,'randomUUID')||performance.now()+Math.random()).replace(/[^\w]/g,'');
+        }
+        toReplace(str, arg) {
+            if (I.str(arg)) {
+                str = I.R(str, /{value}/, arg);
+            } else if (I.obj(arg)) {
+                I.toArr(arg, v => str=I.R(str, new RegExp(v[0], "g"), v[1]));
+            }
+            return str;
+        }
+        getLang(name, arg) {
+            if (!I.none(T.language[name])) name = T.language[name];
+
+            return arg ? T.toReplace(name, arg) : name;
         }
         /**
          * 根据方法回调worker处理
@@ -2222,6 +2319,8 @@
                     back(data.result);
                     T.action[clientID] = null;
                     delete T.action[clientID];
+                    delete data.result;
+                    data = null;
                 };
                 T.postMessage({clientID,method,result});
             });
@@ -2265,7 +2364,7 @@
                     "font;woff,woff2,ttf,otf\n" +
                     "application;pdf,json,js:javascript,*:octet-stream,zip:zip|x-zip-compressed,rar:rar|x-rar-compressed,7z:7z|x-7z-compressed,wasm\n"+
                     "audio;ogg,wma,mp3,m4a:mp4\n"+
-                    "video;mp4").split(/\n/).map(a => {
+                    "video;mp4,mp2t").split(/\n/).map(a => {
                         a = a.split(/;/);
                         return [].concat(...a[1].split(/,/).map(c => {
                             c = c.split(/:/);
@@ -2349,10 +2448,23 @@
                 css:new CustomCSS()
             });
             if(currentScript){
-                T.debug = currentScript.getAttribute('data-debug')?!0:!1;
                 let dataAttr = currentScript.dataset;
+                T.debug = dataAttr.debug;
                 if(dataAttr.sw){
-                    T.SW = new CustomPWA(T,'/sw.js')
+                    T.SW = new CustomPWA(T,'/sw.js');
+                    T.once('pwaload',function(){
+                        let foot = T.$('#footer');
+                        if(foot){
+                            let elm = foot.appendChild(document.createElement('button'));
+                            elm.innerHTML = '刷新PWA';
+                            elm.once('click',async function(){
+                                this.remove();
+                                let sw2 = await navigator.serviceWorker.ready;
+                                sw2.active.update();
+                                location.reload();
+                            });
+                        }
+                    });
                 }
                 T.docload(async e=>{
                     const LibStore = T.getTable('libjs');
@@ -2363,7 +2475,7 @@
                         I.toArr(new Set(fonts.split(',')),name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
                     }
                     if(router){
-                        await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion)&&console.log(name+'.js')));
+                        await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion,!0,!1)&&console.log(name+'.js')));
                     }
                     T.toEvent('ready');
                 });

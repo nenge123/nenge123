@@ -779,12 +779,18 @@ dialog.wbox {
 .w-mask {
     position: fixed;
     z-index: 999;
+    width: 100vw;
+    height: 100vh;
     left: 0;
     right: 0;
     top: 0;
     bottom: 0;
     overflow: hidden;
-    backdrop-filter: blur(3px);
+    background:#00000080;
+    @supports (backdrop-filter: blur(3px)){
+        background:transparent;
+        backdrop-filter: blur(3px);
+    }
     >.wbox {
         margin: auto !important;
         position: absolute;

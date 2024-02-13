@@ -2557,7 +2557,7 @@
                 T.debug = dataAttr.debug;
                 if(dataAttr.sw){
                     T.SW = new CustomPWA(T,'/sw.js');
-                    T.once('pwaload',function(){
+                    T.on('pwaload',function(){
                         let foot = T.$('#footer');
                         if(foot){
                             let elm = foot.appendChild(this.$ce('button'));

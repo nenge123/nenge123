@@ -2570,7 +2570,7 @@
                                         id:'pwa_tag',
                                         class:['min'],
                                         title:'ServiceWorker管理',
-                                        content:'缓存是指ServiceWorker中的caches缓存下来的web请求.',
+                                        content:'缓存是指ServiceWorker中的caches缓存下来的web请求.<p>感觉数据被缓存,点击清空缓存!</p>',
                                         action:[
                                             {
                                                 title:'更新脚本',
@@ -2616,21 +2616,26 @@
                             });
                         }
                     });
-                    T.action['pwa_activate'] = function(){
-                        T.showWin({
-                            title:'提醒!',
-                            content:'ServiceWorker 安装成功!',
-                            action:[
-                                {
-                                    title:'刷新页面',
-                                    click(){
-                                        location.reload();
+                    Object.assign(T.action,{
+                        notification_error(){
+                            T.showWin({title:'警告',content:'通知权限被禁止',lock:!0})
+                        },
+                        pwa_activate(){
+                            T.showWin({
+                                title:'提醒!',
+                                content:'ServiceWorker 安装成功!',
+                                action:[
+                                    {
+                                        title:'刷新页面',
+                                        click(){
+                                            location.reload();
+                                        }
                                     }
-                                }
-                            ],
-                            lock:!0
-                        });
-                    }
+                                ],
+                                lock:!0
+                            });
+                        }
+                    });
                 }
                 T.docload(async e=>{
                     const {router,fonts,version} = dataAttr;

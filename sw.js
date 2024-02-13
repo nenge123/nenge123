@@ -373,6 +373,7 @@ Object.entries({
         let tag = event.tag;
         let source = event.source;
         console.log(tag);
+        if(Notification.permission !='granted') return T.postMethod('notification_error'); 
         switch(tag){
             case 'register':{
                 registration.showNotification('喂,靓仔!',{

@@ -19,7 +19,7 @@ var MyTemplate = new class{
         }
         this.jsondata = jsondata;
         if(jsondata.mode=='sql'){
-            await T.addLib('sql.zip');
+            //await T.addLib('sql.zip');
             return this.RUN_SQL(jsondata);
         }
     }
@@ -27,21 +27,17 @@ var MyTemplate = new class{
         let path = jsondata.path;
         let url = jsondata.url;
         let limit = jsondata.limit;
-        if(jsondata.script){
-            await T.addJS('/assets/js/router/template-pwa-script.js');
-            //if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
-            //else await T.addJS(path+'/script.js');
-        }
-        if(window.TEMPLATE_UPDATE_BUTTON){
-            TEMPLATE_UPDATE_BUTTON(this);
-        }
+        await T.addJS('/assets/js/router/pwa-script-sql.js');
+        let pwa_sql =  new pwa_script(jsondata);
+        I.tryC(pwa_sql,'getAaction',this);
         switch(T.getName(location.href)){
             case '':
             case 'index.html':{
-                return TEMPLATE_INDEX(jsondata);
+                await pwa_sql.index_page(this);
+                break;
             }
             case 'player.html':{
-                return TEMPLATE_PLAYER(jsondata);
+                await pwa_sql.player_page(this);
                 break;
             }
         }

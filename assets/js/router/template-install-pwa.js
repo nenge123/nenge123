@@ -67,6 +67,7 @@ var MyPWA = new class{
                     console.log(source,paths);
                     this.disabled = !1;
                 });
+                /*
                 let zipElm = result.insertBefore(document.createElement('div'),result.children[0]);
                 await T.addLib('zip.min.js',(a,b)=>{
                     zipElm.innerHTML = 'zip.min.js 下载 '+(a*100/b).toFixed(0)+'%';
@@ -75,9 +76,10 @@ var MyPWA = new class{
                 let sqlElm = result.insertBefore(document.createElement('div'),result.children[0]);
                 await T.addLib('sql.zip',(a,b)=>{sqlElm.innerHTML = 'SQL.js 下载 '+(a*100/b).toFixed(0)+'%';});
                 //await T.addJS(T.libPath+ 'sql.js');
+                sqlElm.innerHTML = 'SQL.js已加载 https://github.com/sql-js/sql.js';
+                */
                 const CACHE_SOURCE = await T.getMessage('cachesource');
                 const CACHE_NAME = await T.getMessage('cachename');
-                sqlElm.innerHTML = 'SQL.js已加载 https://github.com/sql-js/sql.js';
                 let path;
                 for(let reg in CACHE_SOURCE){
                     if(url.indexOf(reg)===0){
@@ -109,12 +111,12 @@ var MyPWA = new class{
                     jsondata.script = true;
                 }
                 if(CACHE_SOURCE[path].mode=='sql'){
-                    await T.addJS('/assets/js/router/template-pwa-script.js');
+                    await T.addJS('/assets/js/router/pwa-script-sql.js');
                 }
                 cache.put(path+'/config.json',this.getResponse('json',JSON.stringify(jsondata)));
                 if(I.obj(jsondata)){
-                    if(self.TEMPLATE_INSTALL){
-                        await self.TEMPLATE_INSTALL(jsondata);
+                    if(typeof pwa_script !='undefined'){
+                        await new pwa_script(jsondata).init(result,cache);
                     }
                 }
                 document.getElementsByName('go')[0].hidden=!1;

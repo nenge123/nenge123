@@ -1,0 +1,14 @@
+{
+    "/video/cmvod":{
+        "mode":"sql",
+        "url":"http://127.0.0.1"
+    },
+    "/video/online":{
+        "mode":"sql",
+        "url":"https://videos.nenge.net"
+    },
+    "/video/s1s":{
+        "mode":"sql",
+        "url":"https://videos.nenge.net"
+    }
+}

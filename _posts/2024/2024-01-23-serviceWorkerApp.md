@@ -119,7 +119,7 @@ importScripts('/zip.min.js');
 ### 客户端模板common.js ###
 > 客户端我们可以先弄一个loading界面迷惑用户.  
 由于我的SQL.js修改过,具体可以下载 [sql.zip](/assets/js/lib/sql.zip)  
-但是要修改sql.js `wasmBinary:await Nenge.I.toU8(await Store.getdata(Nenge.LibPad+'sql.wasm'))`   
+但是要修改sql.js `wasmBinary:await Nenge.I.toU8(await Store.getdata('script-sql.wasm'))`   
 例如你在激活worker时保存了SQL.js到缓存,则改为 `new Uint8Array(await (await caches.match('/sql.wasm')).arrayBuffer())`
 
 ```javascript

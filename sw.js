@@ -6,9 +6,13 @@ const CACHE_LIST = [];
 const CACHE_ORIGIN = location.origin;
 const T = new class {
     async InitCache(request,url){
-        await T.checkList(request);
+        await this.checkList('pwa_init');
+        let regs = Object.keys(CACHE_SOURCE).sort();
+        for(let reg of regs){
+            if(url.indexOf(reg)===0) return this.SourceCache(request,reg);
+        }
         if(CACHE_LIST.includes(url)){
-            return T.LoaclCache(request);
+            return this.LoaclCache(request);
         }
         return fetch(request);
     }
@@ -126,9 +130,11 @@ const T = new class {
         if(source instanceof Promise)source = await source;
         if(source&&source instanceof Client)return source.postMessage(str);
         let clients = await self.clients.matchAll();
+        let p  = 0;
         if(clients.length){
             for(let client of clients){
-                if(!client.postMessage)continue;
+                if(!client||!client.postMessage) break;
+                p++;
                 if(source){
                     client.postMessage(str);
                 }else if(client.visibilityState=='visible'){
@@ -137,14 +143,16 @@ const T = new class {
             }
             clients = null;
             str = null;
-        }else if(T.SW){
-            T.SW.postMessage(str);
+        }
+        if(!p&&this.SW){
+            this.SW.postMessage(str);
         }
     }
     async checkList(method){
         if(!CACHE_LIST.length){
             CACHE_LIST.push(this.toLink(ZIP_URL));
         }
+        Object.assign(CACHE_SOURCE,await (await fetch('/source.json')).json());
         const cache = await caches.open(CACHE_NAME);
         const list = await cache.keys();
         list.forEach(v=>{
@@ -161,7 +169,7 @@ const T = new class {
     };
     Client = undefined;
     toLocation(url){
-        return this.toStatus(301,{'location':url});
+        return this.toStatus(301,{location:url});
     }
     toStatus(status,headers,data){
         status = status||404;
@@ -204,23 +212,7 @@ const T = new class {
 
     }
 };
-const CACHE_SOURCE = {
-    "/emulator/test":{
-
-    },
-    "/video/cmvod":{
-        "mode":"sql",
-        "url":"http://127.0.0.1"
-    },
-    "/video/online":{
-        "mode":"sql",
-        "url":"https://videos.nenge.net"
-    },
-    "/video/s1s":{
-        "mode":"sql",
-        "url":"https://videos.nenge.net"
-    },
-};
+const CACHE_SOURCE = {};
 const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
 importScripts(ZIP_URL);
 Object.entries({
@@ -266,11 +258,12 @@ Object.entries({
                         return event.respondWith(T.LoaclCache(request,url));
                     }
                 }
-                for(let reg in CACHE_SOURCE){
-                    if(url.indexOf(reg)===0) return event.respondWith(T.SourceCache(request,reg));
-                }
                 if(!CACHE_LIST.length){
                     return event.respondWith(T.InitCache(request,url));
+                }
+                let regs = Object.keys(CACHE_SOURCE).sort();
+                for(let reg of regs){
+                    if(url.indexOf(reg)===0) return event.respondWith(T.SourceCache(request,reg));
                 }
                 if(CACHE_LIST.includes(url)){
                     return event.respondWith(T.LoaclCache(request));
@@ -379,6 +372,7 @@ Object.entries({
     async sync(event){
         let tag = event.tag;
         let source = event.source;
+        console.log(tag);
         switch(tag){
             case 'register':{
                 registration.showNotification('喂,靓仔!',{
@@ -401,17 +395,42 @@ Object.entries({
                 });
                 break;
             }
+            case 'unregister':{
+                registration.unregister();
+                break;
+            }
+            case 'pwa-update':{
+                registration.update();
+                break;
+            }
             case 'cache-update':{
                 registration.showNotification('网站缓存',{
                     body:CACHE_NAME+'悟空你真不要吗?',
                     actions:[
                         {
                             action:!0,
-                            title:'师傅我要',
+                            title:'不要',
                         },
                         {
                             action:!1,
-                            title:'偷偷伸手',
+                            title:'算了',
+                        }
+                    ],
+                    tag,
+                });
+                break;
+            }
+            case 'cache-clear':{
+                registration.showNotification('网站缓存',{
+                    body:'要清空吗?',
+                    actions:[
+                        {
+                            action:!0,
+                            title:'要要',
+                        },
+                        {
+                            action:!1,
+                            title:'算了',
                         }
                     ],
                     tag,
@@ -458,6 +477,10 @@ Object.entries({
                 registration.showNotification('网站缓存',{body:CACHE_CDN_NAME+'已更新!'});
                 break;
             }
+            case 'load-source':{
+                Object.assign(CACHE_SOURCE,await (await fetch('/source.json')).json());
+                break;
+            }
         }
     },
     /**
@@ -500,10 +523,11 @@ Object.entries({
                     }
                     break;
                 }
-                case 'cache-clear':
-                let list = await caches.keys();
-                list.map(v=>caches.delete(v));
-                break;
+                case 'cache-clear':{
+                    let list = await caches.keys();
+                    list.map(v=>caches.delete(v));
+                    break;
+                }
             }
         }
     },

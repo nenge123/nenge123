@@ -457,7 +457,7 @@
                         if(ARG.libjs&&I.obj(contentBlob)){
                             let keyfile;
                             I.toArr(contentBlob,(entry,index)=>{
-                                const filename = T.LibPad+entry[0];
+                                const filename = ARG.libjs+entry[0];
                                 const filetype = T.getMime(entry[0]);
                                 const datafile = I.File([entry[1]],filename,filetype);
                                 this.put(Object.assign({contents:datafile},options,{filename,filesize:datafile.size}),filename);
@@ -766,7 +766,7 @@
             }
             //let id = 'elm-'+ btoa(Date.now()+Math.random()).replace(/[^\w]/g,'');
             let id = 'elm-'+T.getRandStr();
-            elm.classList.add(id);
+            I.addClass(elm,id);
             return id;
         }
         /**
@@ -949,7 +949,7 @@
         }
         async sync(tag){
             if(!await this.permission('background-sync')) return;
-            (await navigator.serviceWorker.ready).sync(tag);
+            (await navigator.serviceWorker.ready).sync.register(tag);
         }
         async periodicSync(tag,options,sw){
             if(!await this.permission('periodic-background-sync')) return;
@@ -981,84 +981,6 @@
             }
         }
     }
-    Object.assign(EventTarget.prototype, {
-        /**
-         * 绑定事件
-         * @param {*} evt 
-         * @param {*} fun 
-         * @param {*} opt 
-         * @returns 
-         */
-        on(evt, fun, opt) {
-            return this.addEventListener(evt, fun, opt), this;
-        },
-        /**
-         * 解绑事件
-         * @param {*} evt 
-         * @param {*} fun 
-         * @param {*} opt 
-         * @returns 
-         */
-        un(evt, fun, opt) {
-            return this.removeEventListener(evt, fun, opt), this;
-        },
-        /**
-         * 绑定一次事件
-         * @param {*} evt 
-         * @param {*} fun 
-         * @param {*} opt 
-         * @returns 
-         */
-        once(evt, fun, opt) {
-            return this.on(evt, fun, Object.assign({
-                passive: !1,
-                once: !0,
-            }, opt === true ? { passive: !0 } : opt || {})), this;
-        },
-        /**
-         * 触发自定义事件
-         * @param {*} evt 
-         * @param {*} detail 
-         */
-        toEvent(evt, detail) {
-            return this.dispatchEvent(new CustomEvent(evt, { detail })), this;
-        }
-    });
-    Object.assign(HTMLElement.prototype,{
-        AddStyle(text,bool){
-            const css = T.css;
-            if(!I.num(this.RuleIndex)){
-                this.RuleIndex = css.Elm2Rule(this,text);
-            }else if(bool){
-                css.setCSS(text,this.RuleIndex);
-            }else if(text){
-                css.pushCSS(text,this.RuleIndex);
-            };
-            return this.RuleIndex;
-        },
-        SetCSS(text){
-            return this.AddStyle(text,!0),this;
-        },
-        RuleItem(){
-            return T.css.ruleItem(this.AddStyle());
-        },
-        GetRule(){
-            return T.css.getRule(this.RuleIndex);
-        },
-        GetCSS(){
-            return T.css.getCSS(this.RuleIndex);
-        },
-        NewRule(){
-            return T.css.NewRule(this.AddStyle());
-        },
-        AddMeida(media){
-            return this.NewRule().addMedia(media);
-        },
-        RemoveRule(){
-            if(I.num(this.RuleIndex))T.css.delRule(this.RuleIndex);
-            return this;
-        }
-    });
     /**
      * 检查转换类
      */
@@ -1380,6 +1302,16 @@
             I.toArr(a, x => o.setAttribute(...x));
             return o
         },
+        setStyle(o,a,b){
+            if(I.obj(a))return I.toArr(a,v=>I.setStyle(o,...v));
+            I.tryC(o&&o.style||o,'setProperty',a,b);
+        },
+        addClass(o,...b){
+            I.tryA(o&&o.classList,'add',b);
+        },
+        removeClass(o,...b){
+            I.tryA(o&&o.classList,'remove',b);
+        },
         setElm(o, a){   
             let c = I.O(o);
             I.toArr(a, x =>{
@@ -1576,13 +1508,71 @@
             if (!o) return [];
             o = I.array(o) ? o : I.obj(o) ? Object.entries(o) : I.num(o) || o.byteLength ? I.Mach(I.toU8(o.buffer || o)) : I.EachItem(o, !0);
             return I.Mach(o,fn);
+        },
+        GbByte(){
+            let ranges = [
+                [0xA1, 0xA9, 0xA1, 0xFE],
+                [0xB0, 0xF7, 0xA1, 0xFE],
+                [0x81, 0xA0, 0x40, 0xFE],
+                [0xAA, 0xFE, 0x40, 0xA0],
+                [0xA8, 0xA9, 0x40, 0xA0],
+                [0xAA, 0xAF, 0xA1, 0xFE],
+                [0xF8, 0xFE, 0xA1, 0xFE],
+                [0xA1, 0xA7, 0x40, 0xA0],
+            ];
+            let codes = new Uint16Array(23940);
+            let i = 0;
+            for (let [b1Begin, b1End, b2Begin, b2End] of ranges) {
+                for (let b2 = b2Begin; b2 <= b2End; b2++) {
+                    if (b2 !== 0x7F) {
+                        for (let b1 = b1Begin; b1 <= b1End; b1++) {
+                            codes[i++] = b2 << 8 | b1;
+                        }
+                    }
+                }
+            }
+            let table =  new Uint16Array(65536);
+            let gbkstr = new TextDecoder('gbk').decode(codes.buffer);
+            for (let i = 0; i < gbkstr.length; i++) {
+                table[gbkstr.codePointAt(i)] = codes[i];
+            }
+            gbkstr = null;
+            codes = null;
+            return table;
+        },
+        toGB2312(str) {
+            if(!this.gb2312){
+                this.gb2312 = this.GbByte();
+            }
+            let buf = [];
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                if (code < 0x80) {
+                    buf.push(code);
+                    continue;
+                }
+                const gbk = this.gb2312.at(code);
+                if (gbk) {
+                    buf.push(gbk,gbk >> 8);
+                } else if (code === 8364) {
+                    // 8364 == '€'.charCodeAt(0)
+                    // Code Page 936 has a single-byte euro sign at 0x80
+                    buf.push(0x80);
+                } else {
+                    buf.push(63);
+                    if(buf<=0xFF){
+                        //ISO-8859-1
+                    }
+                }
+            }
+            return new Uint8Array(buf);
         }
     };
     /**
      * 主对象
      */
     const T = new class NengeObj extends EventTarget {
-        version = 1;
+        version = 2;
         DB_NAME = "NENGE.NET";
         DB_STORE_MAP = {
             libjs: {},
@@ -1591,7 +1581,6 @@
             }
         }
         LibStore = "libjs";
-        LibPad = "script-";
         language = {};
         StoreList = {};
         libjsBlob = {};
@@ -1621,20 +1610,6 @@
             }
             return T.StoreList[dbName].table(table,options);
         }
-        async FetchCache(url, type, exp, dbName) {
-            type = type || 'blob';
-            let cache = await caches.open(dbName || T.DB_NAME);
-            let response = await cache.match(url);
-            if (!response || (exp && new Date - Date.parse(response.headers.get("date")) > exp)) {
-                response = await fetch(url);
-                if (response) {
-                    cache.put(response.url, response.clone());
-                }
-            }
-            if (response)
-                return response[type]();
-
-        }
         /**
          * 初始化请求参数
          * @param {*} ARG 
@@ -1648,7 +1623,7 @@
                     ARG.key = ARG.key.replace(/\.zip$/,'.js');
                     ARG.unpack = !0;
                 }
-                ARG.key = T.LibPad+this.getName(ARG.key);
+                ARG.key = ARG.libjs+this.getName(ARG.key);
                 if(!ARG.version)ARG.version = this.version;
                 ARG.type = 'blob';
             }
@@ -1784,7 +1759,7 @@
         }
         async FetchLibUrl(name,progress,version){
             if(!this.libjsBlob[name]){
-                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:/^http/.test(name)?name:this.libPath+name,libjs:!0,version:version||this.version,progress}));
+                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:/^http/.test(name)?name:this.libPath+name,libjs:'script-',version:version||this.version,progress}));
             }
             return this.libjsBlob[name];
         }
@@ -1922,7 +1897,7 @@
                         if(!password&&I.str(pwFn))password = pwFn;
                         else password = I.fn(pwFn) ? await pwFn(data.password):prompt('请输入密码', data.password);
                         if(!data.isUTF8&&password){
-                            password = T.str2gb2312(password);
+                            password = I.toGB2312(password);
                         }
                         T.postMessage({workerId,result:password||false});
                     }
@@ -1930,7 +1905,7 @@
                 }
             });
         }
-        async ZipCompress(contents,progress,password,pack){
+        async ZipCompress(contents,progress,password,pack,notips){
             if (I.nil(exports.zip)) {
                 await T.addLib('zip.min.js');
             }
@@ -1971,12 +1946,12 @@
                     let rawPassword;
                     if(entry.encrypted){
                         if(password){
-                            rawPassword = I.buf(password)?password:entry.filenameUTF8==false?this.str2gb2312(password):I.encode(password);
+                            rawPassword = I.buf(password)?password:entry.filenameUTF8==false?I.toGB2312(password):I.encode(password);
                         }
                     }
-                    return entry.getData(new zip.Uint8ArrayWriter(), {rawPassword, onprogress: (current, total,file) =>progress&&progress(current, total,entry.filename,'unpack',file)}).catch(async e=>{
+                    return entry.getData(new zip.Uint8ArrayWriter(), {rawPassword, onprogress: (current, total) =>{progress&&progress(current, total,entry.filename,'unpack');}}).catch(async e=>{
                         let msg = e.message;
-                        if(password===false) return;
+                        if(password===false || notips) return;
                         if(msg == zip.ERR_INVALID_PASSWORD||msg==zip.ERR_ENCRYPTED){
                             if(I.buf(password)) password = I.decode(password,'gbk');
                             password = prompt(pwText, password);
@@ -2001,12 +1976,20 @@
                 return result;
             }
         }
-        async Decompress(contents,progress,password){
+        /**
+         * 
+         * @param {Uint8Array|Blob} contents 
+         * @param {null|Function} progress 
+         * @param {String|Uint8Array} password 
+         * @param {Boolean} notips 
+         * @returns 
+         */
+        async Decompress(contents,progress,password,notips){
             const pwText = 'Enter password.';
             let buf = contents.slice(0,6);
             if(I.blob(buf))buf = await I.toU8(buf);
             buf = I.toUp(I.buf2str(buf));
-            if(/^504B0304/.test(buf))return T.ZipCompress(contents,progress,password);
+            if(/^504B0304/.test(buf))return T.ZipCompress(contents,progress,password,!1,notips);
             let ext = /^52617221/.test(buf)?'rar':/^377ABCAF271C/.test(buf)?'7z':undefined;
             if(!ext) return null;
             contents = await I.toU8(contents);
@@ -2032,13 +2015,17 @@
                         } else if (t == 4) {
                             return (total > 0 && total >= current) && I.tryC(progress,progress,current, total, name || file);
                         } else if (t === -1) {
-                            password = prompt(this.pwText, password || "");
-                            if (!password) {
+                            if(notips){
                                 complete(null);
-                            } else {
-                                return worker.postMessage({
-                                    password
-                                });
+                            }else{
+                                password = prompt(this.pwText, password || "");
+                                if (!password) {
+                                    complete(null);
+                                } else {
+                                    return worker.postMessage({
+                                        password
+                                    });
+                                }
                             }
                         }
                         worker.terminate();
@@ -2056,60 +2043,6 @@
 
             })
         }
-        str2gb2312(str) {
-            const ranges = [
-                [0xA1, 0xA9, 0xA1, 0xFE],
-                [0xB0, 0xF7, 0xA1, 0xFE],
-                [0x81, 0xA0, 0x40, 0xFE],
-                [0xAA, 0xFE, 0x40, 0xA0],
-                [0xA8, 0xA9, 0x40, 0xA0],
-                [0xAA, 0xAF, 0xA1, 0xFE],
-                [0xF8, 0xFE, 0xA1, 0xFE],
-                [0xA1, 0xA7, 0x40, 0xA0],
-            ];
-            let codes = new Uint16Array(23940);
-            let i = 0;
-            for (const [b1Begin, b1End, b2Begin, b2End] of ranges) {
-                for (let b2 = b2Begin; b2 <= b2End; b2++) {
-                    if (b2 !== 0x7F) {
-                        for (let b1 = b1Begin; b1 <= b1End; b1++) {
-                            codes[i++] = b2 << 8 | b1;
-                        }
-                    }
-                }
-            }
-            let table =  new Uint16Array(65536);
-            let gbkstr = new TextDecoder('gbk').decode(codes);
-            for (let i = 0; i < gbkstr.length; i++) {
-                table[gbkstr.charCodeAt(i)] = codes[i];
-            }
-            gbkstr = null;
-            codes = null;
-            let buf = [];
-            for (let i = 0; i < str.length; i++) {
-                const code = str.charCodeAt(i);
-                if (code < 0x80) {
-                    buf.push(code);
-                    continue;
-                }
-                const gbk = table.at(code);
-                if (gbk&&gbk !== 0xFFFF) {
-                    buf.push(gbk);
-                    buf.push(gbk >> 8);
-                } else if (code === 8364) {
-                    // 8364 == '€'.charCodeAt(0)
-                    // Code Page 936 has a single-byte euro sign at 0x80
-                    buf.push(0x80);
-                } else {
-                    buf.push(63);
-                    if(buf<=0xFF){
-                        //ISO-8859-1
-                    }
-                }
-            }
-            table = null;
-            return new Uint8Array(buf)
-        }
         addJS(buf, cb, iscss) {
             return I.Async(back => {
                 if(!iscss&&iscss!==false){
@@ -2117,7 +2050,7 @@
                 }
                 const url = this.URL(buf);
                 if(!I.fn(cb)) cb = false;
-                const script = (!iscss ? document.body : document.head).appendChild(document.createElement(iscss ? 'link' : 'script'));
+                const script = (!iscss ? document.body : document.head).appendChild(this.$ce(iscss ? 'link' : 'script'));
                 const data = {
                     type: this.getMime(iscss ? 'css' : 'js'),
                     href: url,
@@ -2221,7 +2154,7 @@
             }
             if (!name)name = 'explame.html';
             return I.Async(back=>{                
-                const a = document.createElement('a');
+                const a = this.$ce('a');
                 a.href = href;
                 a.download = name;
                 a.click();
@@ -2241,6 +2174,9 @@
         }
         $$(e, f) {
             return (f || document).querySelectorAll(e) || [];
+        }
+        $ce(str){
+            return document.createElement(str||'div');
         }
         docElm(str, mime) {
             return new DOMParser().parseFromString(str, mime || document.contentType).documentElement;
@@ -2265,7 +2201,7 @@
          * @param {boolean} multiple
          */
         upload(fn, accept, multiple) {
-            const input = document.createElement('input');
+            const input = this.$ce('input');
             I.setElm(input,{
                 type: File.name,
                 accept,
@@ -2420,9 +2356,178 @@
                 document.on('readystatechange',func);
             }
         }
+        showWin(ARG){
+            let wbox = T.$ce('dialog');
+            wbox.setAttribute("aria-modal","true");
+            if(ARG.id){
+                wbox.setAttribute('id',ARG.id);
+            }
+            I.addClass(wbox,'wbox',ARG.type||'blue');
+            if(ARG.class){
+                I.addClass(wbox,...ARG.class);
+            }
+            if(ARG.time){
+                if(I.str(ARG.time))I.setStyle(wbox,'--wb-time',ARG.time);
+                I.addClass(wbox,'autoclose');
+                wbox.on('animationend',function(){
+                    I.removeClass(this,'autoclose');
+                    this.toEvent('hide');
+                })
+            }
+            ['title','content','foot'].forEach(v=>{
+                let vdiv = wbox.appendChild(T.$ce());
+                I.addClass(vdiv,v);
+                if(ARG[v]){
+                    vdiv.innerHTML = ARG[v];
+                }
+                if(v=='title'){
+                    let btn = vdiv.appendChild(T.$ce('button'));
+                    btn.innerHTML = '&#61453;';
+                    I.addClass(btn,'close');
+                    btn.on('click',function(e){
+                        e.preventDefault();
+                        this.parentNode.parentNode.toEvent('hide');
+                    });
+                }
+                if(v=='foot'&&ARG.action){
+                    I.toArr(ARG.action,entry=>{
+                        let btn = vdiv.appendChild(T.$ce('button'));
+                        btn.innerHTML = entry.title;
+                        I.addClass(btn,'action','w-btn');
+                        if(entry.css)btn.style.cssText = entry.css;
+                        btn.on('click',entry.click);
+                    });
+                }
+            });
+            if(!ARG.lock){
+                if('showPopover' in HTMLElement.prototype){
+                    wbox.popover = 'auto';
+                    wbox.on('hide',function(){
+                        this.hidePopover();
+                    });
+                    wbox.on('show',function(){
+                        this.showPopover();
+                    });
+                    document.body.appendChild(wbox);
+                    return wbox.toEvent('show');
+                }
+                if('showModal' in wbox){
+                    wbox.on('hide',function(){
+                        this.close('hide');
+                    });
+                    wbox.on('show',function(){
+                        this.showModal();
+                    });
+                    document.body.appendChild(wbox);
+                    return wbox.toEvent('show');
+                }
+
+            }
+            let div = T.$ce();
+            I.addClass(div,'w-mask');
+            div.appendChild(wbox);
+            document.body.appendChild(div);
+            div.on('show',function(){
+                this.hidden=!1;
+            });
+            div.on('hide',function(){
+                this.hidden=!0;
+            });
+            wbox.on('hide',function(){
+                this.parentNode.toEvent('hide');
+            });
+            wbox.on('show',function(){
+                this.parentNode.toEvent('show');
+            });
+            !ARG.lock&&div.on('click',function(e){
+                if(e.target===this)this.toEvent('hide');
+            });
+            div.toEvent('show');
+            return div;
+        }
         constructor() {
             super();
             const T = this;
+            Object.assign(exports, { T, I });
+            I.defines(exports, {Nenge: T}, 1);
+            Object.assign(EventTarget.prototype, {
+                /**
+                 * 绑定事件
+                 * @param {*} evt 
+                 * @param {*} fun 
+                 * @param {*} opt 
+                 * @returns 
+                 */
+                on(evt, fun, opt) {
+                    return this.addEventListener(evt, fun, opt), this;
+                },
+                /**
+                 * 解绑事件
+                 * @param {*} evt 
+                 * @param {*} fun 
+                 * @param {*} opt 
+                 * @returns 
+                 */
+                un(evt, fun, opt) {
+                    return this.removeEventListener(evt, fun, opt), this;
+                },
+                /**
+                 * 绑定一次事件
+                 * @param {*} evt 
+                 * @param {*} fun 
+                 * @param {*} opt 
+                 * @returns 
+                 */
+                once(evt, fun, opt) {
+                    return this.on(evt, fun, Object.assign({
+                        passive: !1,
+                        once: !0,
+                    }, opt === true ? { passive: !0 } : opt || {})), this;
+                },
+                /**
+                 * 触发自定义事件
+                 * @param {*} evt 
+                 * @param {*} detail 
+                 */
+                toEvent(evt, detail) {
+                    return this.dispatchEvent(typeof evt=='string'?new CustomEvent(evt, { detail }):evt), this;
+                }
+            });
+            Object.assign(HTMLElement.prototype,{
+                AddStyle(text,bool){
+                    const css = T.css;
+                    if(!I.num(this.RuleIndex)){
+                        this.RuleIndex = css.Elm2Rule(this,text);
+                    }else if(bool){
+                        css.setCSS(text,this.RuleIndex);
+                    }else if(text){
+                        css.pushCSS(text,this.RuleIndex);
+                    };
+                    return this.RuleIndex;
+                },
+                SetCSS(text){
+                    return this.AddStyle(text,!0),this;
+                },
+                RuleItem(){
+                    return T.css.ruleItem(this.AddStyle());
+                },
+                GetRule(){
+                    return T.css.getRule(this.RuleIndex);
+                },
+                GetCSS(){
+                    return T.css.getCSS(this.RuleIndex);
+                },
+                NewRule(){
+                    return T.css.NewRule(this.AddStyle());
+                },
+                AddMeida(media){
+                    return this.NewRule().addMedia(media);
+                },
+                RemoveRule(){
+                    if(I.num(this.RuleIndex))T.css.delRule(this.RuleIndex);
+                    return this;
+                }
+            });
             let { language, onLine } = navigator;
             let { readyState, currentScript, characterSet } = document;
             let src = currentScript && currentScript.src.split(/\?/),
@@ -2455,27 +2560,87 @@
                     T.once('pwaload',function(){
                         let foot = T.$('#footer');
                         if(foot){
-                            let elm = foot.appendChild(document.createElement('button'));
-                            elm.innerHTML = '刷新PWA';
-                            elm.once('click',async function(){
-                                this.remove();
-                                let sw2 = await navigator.serviceWorker.ready;
-                                sw2.active.update();
-                                location.reload();
+                            let elm = foot.appendChild(this.$ce('button'));
+                            elm.innerHTML = 'PWA操作';
+                            elm.on('click',async function(e){
+                                e.preventDefault();
+                                let pwa_tag = T.$('#pwa_tag');
+                                if(!pwa_tag){
+                                    return T.showWin({
+                                        id:'pwa_tag',
+                                        class:['min'],
+                                        title:'ServiceWorker管理',
+                                        content:'缓存是指ServiceWorker中的caches缓存下来的web请求.',
+                                        action:[
+                                            {
+                                                title:'更新脚本',
+                                                click(){
+                                                    T.SW.sync('pwa-update');
+                                                    this.remove();
+                                                }
+                                            },
+                                            {
+                                                title:'更新缓存',
+                                                click(){
+                                                    T.SW.sync('cache-check');
+                                                    this.remove();
+                                                }
+                                            },
+                                            {
+                                                title:'清空缓存',
+                                                click(){
+                                                    T.SW.sync('cache-clear');
+                                                    this.remove();
+                                                }
+                                            },
+                                            {
+                                                title:'卸载',
+                                                click(){
+                                                    T.SW.sync('unregister');
+                                                    this.remove();
+                                                    setTimeout(()=>location.href='about:blank',window.close(),1000);
+                                                }
+                                            },
+                                            {
+                                                title:'刷新页面',
+                                                click(){
+                                                    location.reload();
+                                                }
+                                            }
+                                        ],
+                                        lock:!0,
+                                        time:'5s',
+                                    });
+                                }
+                                pwa_tag.toEvent('show');
                             });
                         }
                     });
+                    T.action['pwa_activate'] = function(){
+                        T.showWin({
+                            title:'提醒!',
+                            content:'ServiceWorker 安装成功!',
+                            action:[
+                                {
+                                    title:'刷新页面',
+                                    click(){
+                                        location.reload();
+                                    }
+                                }
+                            ],
+                            lock:!0
+                        });
+                    }
                 }
                 T.docload(async e=>{
-                    const LibStore = T.getTable('libjs');
-                    const assetsPath = T.dirname(T.JSpath);
                     const {router,fonts,version} = dataAttr;
-                    T.hashVersion = version?parseInt(version):T.version;
+                    T.version = version?parseInt(version):T.version;
+                    const assetsPath = T.dirname(T.JSpath);
                     if(fonts){
-                        I.toArr(new Set(fonts.split(',')),name=>LibStore.fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
+                        I.toArr(new Set(fonts.split(',')),name=>T.getTable('libjs').fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
                     }
                     if(router){
-                        await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.hashVersion,!0,!1)&&console.log(name+'.js')));
+                        await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.version,!0,!1)));
                     }
                     T.toEvent('ready');
                 });
@@ -2483,8 +2648,4 @@
         }
     };
     window.onerror = e=>alert(e);
-    Object.assign(exports, { T, I });
-    I.defines(exports, {
-        Nenge: T
-    }, 1);
 });

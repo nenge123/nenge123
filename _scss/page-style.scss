@@ -772,7 +772,7 @@ dialog.wbox {
         }
 
     &::backdrop {
-        backdrop-filter: blur(3px);
+        background:#00000080;
     }
 }
 
@@ -787,10 +787,6 @@ dialog.wbox {
     bottom: 0;
     overflow: hidden;
     background:#00000080;
-    @supports (backdrop-filter: blur(3px)){
-        background:transparent;
-        backdrop-filter: blur(3px);
-    }
     >.wbox {
         margin: auto !important;
         position: absolute;

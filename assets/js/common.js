@@ -2399,7 +2399,7 @@
                     });
                 }
             });
-            if(!ARG.lock){
+            if(!I.bool(ARG.lock)){
                 if('showPopover' in HTMLElement.prototype){
                     wbox.popover = 'auto';
                     wbox.on('hide',function(){

@@ -64,14 +64,19 @@ $fontFace: "FontAwesome";
             justify-content: center;
             border: 1px solid #ccc;
             input{
+                appearance: none;
                 padding: 4px;
                 width: 200px;
                 height: 20px;
                 outline: none;
                 border: none;
                 border-right: 1px solid #ccc;
+                border-radius: none;
             }
             button{
+                appearance: none;
+                padding: 0px;
+                margin: 0px;
                 width: 60px;
                 border: none;
                 outline: none;

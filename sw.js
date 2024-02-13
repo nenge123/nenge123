@@ -211,6 +211,10 @@ const T = new class {
         return new Response(data instanceof Blob?data:new Blob([data]),{headers});
 
     }
+    showNotification(title,options){
+        if(Notification&&Notification.permission !='granted') return this.postMethod('notification_error');
+        return registration.showNotification(title,options);
+    }
 };
 const CACHE_SOURCE = {};
 const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
@@ -258,7 +262,7 @@ Object.entries({
                         return event.respondWith(T.LoaclCache(request,url));
                     }
                 }
-                if(!CACHE_LIST.length){
+                if(!Object.keys(CACHE_SOURCE).length){
                     return event.respondWith(T.InitCache(request,url));
                 }
                 let regs = Object.keys(CACHE_SOURCE).sort();
@@ -373,10 +377,9 @@ Object.entries({
         let tag = event.tag;
         let source = event.source;
         console.log(tag);
-        if(Notification.permission !='granted') return T.postMethod('notification_error'); 
         switch(tag){
             case 'register':{
-                registration.showNotification('喂,靓仔!',{
+                T.showNotification('喂,靓仔!',{
                     body:'能哥非常无耻的把ServiceWorker装系你台机度!',
                     /**
                      * 按钮选项
@@ -405,7 +408,7 @@ Object.entries({
                 break;
             }
             case 'cache-update':{
-                registration.showNotification('网站缓存',{
+                T.showNotification('网站缓存',{
                     body:CACHE_NAME+'悟空你真不要吗?',
                     actions:[
                         {
@@ -422,7 +425,7 @@ Object.entries({
                 break;
             }
             case 'cache-clear':{
-                registration.showNotification('网站缓存',{
+                T.showNotification('网站缓存',{
                     body:'要清空吗?',
                     actions:[
                         {
@@ -440,7 +443,7 @@ Object.entries({
             }
             case 'cache-check':{
                 let cache = await caches.open(CACHE_NAME);
-                registration.showNotification('正在更新',{
+                T.showNotification('正在更新',{
                     body:CACHE_NAME+'缓存!',
                     lang:'zh-yue',
                     renotify:!0,
@@ -458,7 +461,7 @@ Object.entries({
                         console.log(modified,cachetime,request.url);
                         await cache.put(request.url,(await fetch(request.url)).clone());
                     }
-                    registration.showNotification('正在更新',{
+                    T.showNotification('正在更新',{
                         body:'已检查:'+T.toPath(request.url),
                         lang:'zh-yue',
                         renotify:!0,
@@ -475,7 +478,7 @@ Object.entries({
             }
             case 'cache-cdn-update':{
                 await caches.delete(CACHE_CDN_NAME);
-                registration.showNotification('网站缓存',{body:CACHE_CDN_NAME+'已更新!'});
+                T.showNotification('网站缓存',{body:CACHE_CDN_NAME+'已更新!'});
                 break;
             }
             case 'load-source':{

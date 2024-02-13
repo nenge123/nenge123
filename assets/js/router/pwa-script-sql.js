@@ -151,7 +151,7 @@ class pwa_script{
                     btn2.dataset.source = url + '/' + dataitem[3];
                     btn2.once('click', async function () {
                         this.remove();
-                        await TP.loadImage(this.dataset.source, TP, cache);
+                        await TP.loadImage(this.dataset.source, cache);
                     });
                 }
                 return;
@@ -172,7 +172,7 @@ class pwa_script{
                 btn2.dataset.source = url + '/' + dataitem[3];
                 btn2.once('click', async function () {
                     this.remove();
-                    await TP.loadImage(this.dataset.source, TP, cache);
+                    await TP.loadImage(this.dataset.source, cache);
                 });
             }
 
@@ -185,12 +185,12 @@ class pwa_script{
         let imgbtn2 = TP.addend(x,'button');
         imgbtn2.innerHTML = '上传网盘中图片资源';
         imgbtn2.on('click', async function () {
-            T.upload(async files =>TP.readImge(files,TP,(a,b)=>setResult(a,b)));
+            T.upload(async files =>TP.readImge(files,(a,b)=>setResult(a,b)));
         });
         let imgbtn3 = TP.addend(x,'button');
         imgbtn3.innerHTML = '上传网盘中数据资源';
         imgbtn3.on('click', async function () {
-            T.upload(async files =>TP.readImge(files,TP,(a,b)=>setResult(a,b)));
+            T.upload(async files =>TP.readData(files,(a,b)=>setResult(a,b)));
         });
     }
     async installData(url, db, cache, progress, password) {

@@ -909,7 +909,7 @@
                     }
                     return !1;
                 })();
-                I.tryC(Notification,'requestPermission');
+                if(Notification&&Notification.permission!='granted')I.tryC(Notification,'requestPermission');
             }else{
                 this.ok = I.Async(!1);
             }

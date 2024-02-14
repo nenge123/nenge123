@@ -2629,6 +2629,20 @@
                                 content:'ServiceWorker 安装成功!',
                                 action:[
                                     {
+                                        title:'更新缓存(建议)',
+                                        click(){
+                                            T.SW.sync('cache-check');
+                                            this.remove();
+                                        }
+                                    },
+                                    {
+                                        title:'清空缓存',
+                                        click(){
+                                            T.SW.sync('cache-clear');
+                                            this.remove();
+                                        }
+                                    },
+                                    {
                                         title:'刷新页面',
                                         click(){
                                             location.reload();

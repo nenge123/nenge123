@@ -219,6 +219,27 @@ const T = new class {
         if(Notification&&Notification.permission !='granted') return;
         Array.from(await registration.getNotifications({tag}),notice=>notice.close());
     }
+    async updateCache(){
+        let cache = await caches.open(CACHE_NAME);
+        await Promise.all((await cache.keys()).map(async request=>{
+            let modified = (await fetch(request.url,{method:'HEAD'})).headers.get('last-modified');
+            let cachetime = (await cache.match(request)).headers.get('last-modified');
+            if(modified!=cachetime){
+                console.log(modified,cachetime,request.url);
+                await cache.put(request.url,(await fetch(request.url)).clone());
+            }
+            /*
+            T.showNotification('正在更新',{
+                body:'已检查:'+T.toPath(request.url),
+                lang:'zh-yue',
+                renotify:!0,
+                requireInteraction:!0,
+                vibrate: [200, 100, 200, 100, 200],
+                tag
+            });
+            */
+        }));
+    }
 };
 const CACHE_SOURCE = {};
 const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
@@ -234,6 +255,7 @@ Object.entries({
         T.postMethod('pwa_activate',!0,T.SW);
         return event.waitUntil(
             T.checkList('pwa_init',!0,T.SW).then(()=>{
+                T.updateCache();
                 self.dispatchEvent(new SyncEvent('sync',{tag:'register'}));
                 return self.skipWaiting();
             })
@@ -454,7 +476,6 @@ Object.entries({
                 break;
             }
             case 'cache-check':{
-                let cache = await caches.open(CACHE_NAME);
                 T.showNotification('正在更新',{
                     body:CACHE_NAME+'缓存!',
                     lang:'zh-yue',
@@ -466,25 +487,7 @@ Object.entries({
                     vibrate: [200, 100, 200, 100, 200],
                     tag
                 });
-                await Promise.all((await cache.keys()).map(async request=>{
-                    let modified = (await fetch(request.url,{method:'HEAD'})).headers.get('last-modified');
-                    let cachetime = (await cache.match(request)).headers.get('last-modified');
-                    if(modified!=cachetime){
-                        console.log(modified,cachetime,request.url);
-                        await cache.put(request.url,(await fetch(request.url)).clone());
-                    }
-                    T.showNotification('正在更新',{
-                        body:'已检查:'+T.toPath(request.url),
-                        lang:'zh-yue',
-                        renotify:!0,
-                        requireInteraction:!0,
-                        /**
-                         * 震动
-                         */
-                        vibrate: [200, 100, 200, 100, 200],
-                        tag
-                    });
-                }));
+                await T.updateCache();
                 T.closeNotification(tag);
                 break;
             }

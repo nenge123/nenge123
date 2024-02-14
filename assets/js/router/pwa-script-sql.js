@@ -1,7 +1,7 @@
-class pwa_script{
-    constructor(jsondata){
+class template_script{
+    constructor(jsondata,template){
         if(I.obj(jsondata))Object.assign(this,jsondata);
-
+        if(template)this.template = template;
     }
     async loadSQL(progress){
         if(!this.SQL){
@@ -57,23 +57,46 @@ class pwa_script{
             }
         });
     }
-    getId(str){
-        return document.getElementById(str);
+    getParams(){
+        let str = location.pathname.replace(this.path+'/','').split('?')[0].split('#')[0].split('.')[0];
+        if(str.charAt(str.length-1)=='/'){
+            str = str.slice(0,-1);
+        }
+        let params = new URLSearchParams(location.search);
+        let index = 0;
+        if(str.indexOf('/')!==-1){
+            for(let value of str.split('/')){
+                params.set(index,value);
+                index++;
+            }
+        }else if(str.indexOf('-')!==-1){
+            for(let value of T.getKey(str).split('-')){
+                params.set(index,value);
+                index++;
+            }
+        }
+        if(params.get(0)){
+            params.set('router',params.get(0));
+        }else{
+            params.set('router','index');
+        }
+        if(I.int(params.get(1))){
+            params.set('id',params.get(1));
+        }
+        return params;
     }
     creatElm(str){
         return document.createElement(str);
     }
-    append(a,b){
+    append(a,b,bool){
         if(I.str(b))b=this.creatElm(b);
+        if(bool)return (a||document).insertBefore(b,(a||document).children[0])
         return (a||document).appendChild(b);
     }
-    addend(a,str){
-        return this.append(a,this.creatElm(str));
-    }
     sql_query = 'SELECT * FROM `data` ';
-    sql_columns = ['id','title','type','url','url2','img'];
+    sql_columns = ['id','title','type','url','img'];
     sql_creat_table(db){
-        db.run('CREATE TABLE `data` (`id` int primary key,`title` char,`type` char,`url` char,`url2` char,`img` char);');
+        db.run('CREATE TABLE `data` (`id` int primary key,`title` char,`type` char,`url` char,`img` char);');
         db.run('CREATE TABLE `type` (`name` char primary key,`num` int);');
     }
     sql_setValue(data){
@@ -83,9 +106,17 @@ class pwa_script{
         }
         return values;
     }
-    async init(result,cache){
+    sql_getInsertTxt(){
+        let str1=[],str2=[];
+        for(let key of this.sql_columns){
+            str1.push('`'+key+'`');
+            str2.push('?');
+        }
+        return 'INSERT INTO `data` ('+str1.join(',')+') VALUES ('+str2.join(',')+');'
+    }
+    async init(cache){
         const TP = this;
-        console.log(this,result);
+        const result = TP.template.elm_content;
         const setResult = (str, elm) => {
             if (!elm){
                 elm = result.insertBefore(this.creatElm('div'), result.children[0]);
@@ -121,7 +152,7 @@ class pwa_script{
             let zipli = setResult('读取' + dataitem[2]);
             if (maxID >= dataitem[1]) {
                 setResult(dataitem[2] + '可能已加载', zipli);
-                let btn = TP.addend(zipli,'button');
+                let btn = TP.append(zipli,'button');
                 btn.innerHTML = '重新写入';
                 btn.dataset.source = url + '/' + dataitem[2];
                 btn.on('pointerup', async function () {
@@ -145,8 +176,9 @@ class pwa_script{
                     TP.SQL._sqlite3_free();
                     TP.SQL._free();
                 });
+                /*
                 if (dataitem[3]) {
-                    let btn2 = TP.addend(zipli,'button');
+                    let btn2 = TP.append(zipli,'button');
                     btn2.innerHTML = '写入图片资源?';
                     btn2.dataset.source = url + '/' + dataitem[3];
                     btn2.once('click', async function () {
@@ -154,7 +186,8 @@ class pwa_script{
                         await TP.loadImage(this.dataset.source, cache);
                     });
                 }
-                return;
+                */
+                continue;
             }
             let waitText = dataitem.join('/');
             setResult(waitText + '读取中', zipli);
@@ -166,8 +199,9 @@ class pwa_script{
                 }
             }).catch(e => console.log(e));
             setResult(waitText + ' 记录完成', zipli);
+            /*
             if (dataitem[3]) {
-                let btn2 = TP.addend(zipli,'button');
+                let btn2 = TP.append(zipli,'button');
                 btn2.innerHTML = '写入图片资源?';
                 btn2.dataset.source = url + '/' + dataitem[3];
                 btn2.once('click', async function () {
@@ -175,19 +209,23 @@ class pwa_script{
                     await TP.loadImage(this.dataset.source, cache);
                 });
             }
+            */
 
         }
         db.close();
         TP.SQL._sqlite3_free();
         TP.SQL._free();
+        console.log(555);
         let x = setResult('数据已同步,可以返回地址,亦可以进行本地导入:');
         x.classList.add('warn');
-        let imgbtn2 = TP.addend(x,'button');
+        /*
+        let imgbtn2 = TP.append(x,'button');
         imgbtn2.innerHTML = '上传网盘中图片资源';
         imgbtn2.on('click', async function () {
             T.upload(async files =>TP.readImge(files,(a,b)=>setResult(a,b)));
         });
-        let imgbtn3 = TP.addend(x,'button');
+        */
+        let imgbtn3 = TP.append(x,'button');
         imgbtn3.innerHTML = '上传网盘中数据资源';
         imgbtn3.on('click', async function () {
             T.upload(async files =>TP.readData(files,(a,b)=>setResult(a,b)));
@@ -207,6 +245,7 @@ class pwa_script{
         const TP = this;
         let path = TP.path;
         if (!cache) cache = await caches.open(TP.cachename);
+        const sqlstr = TP.sql_getInsertTxt();
         I.toArr(data, entry => {
             if (/\.json$/.test(entry[0])) {
                 let sqldata = JSON.parse(I.decode(entry[1]));
@@ -217,7 +256,7 @@ class pwa_script{
                     if (db.fetchFirst(TP.sql_query + 'where `id` = ?', [id])) {
                         db.run('DELETE FROM `data` where `id` = ?', [id]);
                     }
-                    db.run('INSERT INTO `data` VALUES ('+new Array(TP.sql_columns.length).fill('?').join(',')+');',TP.sql_setValue(itemdata));
+                    db.run(sqlstr,TP.sql_setValue(itemdata));
                     if (itemdata['type']) {
                         itemdata['type'].split(',').forEach(v2 => {
                             if (v2) {
@@ -239,7 +278,8 @@ class pwa_script{
     }
     async loadImage(url, cache) {
         const TP = this;
-        let result = TP.getId('pwa-result');
+        const template = TP.template;
+        let result = template.elm_content;
         let elm = result.insertBefore(TP.creatElm('div'), result.children[0]);
         return this.saveImage(await T.FetchData({
             url,
@@ -256,7 +296,8 @@ class pwa_script{
         const TP = this;
         if (!cache) cache = await caches.open(TP.cachename);
         let path = TP.path;
-        let result = TP.getId('pwa-result');
+        const template = TP.template;
+        let result = template.elm_content;
         let elm = result&&result.insertBefore(TP.creatElm('div'), result.children[0]);
         let num = 0;
         I.toArr(data, entry => {
@@ -304,18 +345,20 @@ class pwa_script{
         TP.SQL._sqlite3_free();
         TP.SQL._free();
     }
-    async index_page(template){
+    async template_index(){
         const TP = this;
-        let elm = TP.getId('page-result');
-        let div = TP.addend(elm,'div');
-        const params = new URLSearchParams(location.search);
+        const template = TP.template;
+        let elm = template.elm_content;
+        let div = TP.append(elm,'div');
+        const params = TP.getParams();
         const limit = TP.limit;
         T.css.Elm2Rule(elm, 'padding:10px');
-        let page = parseInt(params.get('page') || 1) || 1;
+        let page = parseInt(params.get('id') || 1);
+        if(!page)page = 1;
         let tag = params.get('tag');
         let search = params.get('search');
         let order = params.get('order');
-        let u8 = await T.FetchData('sql.dat');
+        let u8 = await T.FetchData(TP.path+'/sql.dat');
         if(!u8){
             template.setError('数据库不存在!');
             return;
@@ -341,98 +384,106 @@ class pwa_script{
         let maxnum = db.fetchResult(sql.replace('*', 'count(*)'), sql_params);
         let navpage;
         if(maxnum){
-            navpage = TP.addend(div,'nav');
+            navpage = TP.append(div,'nav');
             let maxpage = Math.ceil(maxnum / limit);
             if(page>maxpage)page=maxpage;
             navpage.classList.add('nav-page');
-            let maxlengh = 8;
             let url_params = new URLSearchParams();
             if (tag) {
                 url_params.set('tag', tag);
-                let sitenav = TP.getId('site-nav');
+                let sitenav = template.elm_nav;
                 if (sitenav) {
-                    let a = TP.addend(sitenav,'a');
-                    a.href = 'index.html?tag=' + tag;
+                    let a = TP.append(sitenav,'a');
+                    a.href = TP.path+'/index.html?tag=' + tag;
                     a.innerHTML = tag;
                 }
             }
             if (search) {
                 url_params.set('search', search);
             }
-            let a_i = TP.addend(navpage,'a');
-            a_i.href = 'index.html?' + url_params.toString();
-            a_i.innerHTML = '顶页';
-            if (page - 1 > 0) {
-                for (let i = page - 5; i <= page; i++) {
-                    if (i < 1) continue;
-                    let a = TP.addend(navpage,'a');
-                    url_params.set('page', i);
-                    a.href = 'index.html?' + url_params.toString();
-                    a.innerHTML = i;
-                    if (i == page) a.classList.add('active');
-                    maxlengh -= 1;
-                }
-            }
-            if (maxpage - page > 0) {
-                for (let i = page + 1; i <= maxpage; i++) {
-                    let a = TP.addend(navpage,'a');
-                    url_params.set('page', i);
-                    a.href = 'index.html?' + url_params.toString();
-                    a.innerHTML = i;
+            
+            let page_index = TP.append(navpage,'a');
+            page_index.href = TP.path+'/index.html?' + url_params.toString();
+            page_index.innerHTML = '顶页';
+            if(page<=1)page_index.classList.add('active');
+            let maxlengh = 8;
+            let leftpage = document.createDocumentFragment();
+            let RightPage = document.createDocumentFragment();
+            for(let i=0;i<=8;i++){
+                if(i==0||page+i<maxpage){
+                    if(page+i==maxpage||page+i==1){
+                        continue;
+                    }
+                    let a = TP.append(RightPage,'a');
+                    a.href = TP.path+'/index-'+(page+i)+'.html?' + url_params.toString();
+                    a.innerHTML = page+i;
+                    if(i==0)a.classList.add('active');
                     maxlengh--;
-                    if (maxlengh < 0) break;
                 }
+                if (maxlengh < 0) break;
+                if(i>0&&page-i>1){
+                    let a = TP.append(leftpage,'a',!0);
+                    a.href = TP.path+'/index-'+(page-i)+'.html?' + url_params.toString();
+                    a.innerHTML = page-i;
+                    maxlengh--;
+                }
+                if (maxlengh < 0) break;
             }
-            let a_x = TP.addend(navpage,'a');
-            url_params.set('page', maxpage);
-            a_x.href = 'index.html?' + url_params.toString();
-            a_x.innerHTML = '尾页';
-            let a_y = TP.addend(navpage,'button');
-            a_y.classList.add('active');
-            a_y.innerHTML = '共' + maxnum + '条,' + maxpage + '页';
+            TP.append(navpage,leftpage);
+            TP.append(navpage,RightPage);
+            let page_end = TP.append(navpage,'a');
+            page_end.href = TP.path+'/index-'+maxpage+'.html?' + url_params.toString();
+            page_end.innerHTML = '尾页';
+            if (page>=maxpage) page_end.classList.add('active');
+            let page_count = TP.append(navpage,'button');
+            page_count.classList.add('active');
+            page_count.innerHTML = '共' + maxnum + '条,' + maxpage + '页';
             TP.append(div,navpage);
 
         }
         let datas = db.fetchArray(sql + ' limit ' + (page - 1) * limit + ',' + limit, sql_params);
         if (datas) {
-            let ul = TP.addend(elm,'ul');
+            let ul = TP.append(elm,'ul');
             ul.classList.add('sql-item-list');
             Object.entries(datas).forEach(v => {
-                let li = TP.addend(ul,'li');
+                let li = TP.append(ul,'li');
                 let data = v[1];
                 let id = data['id'];
                 data['title'].replace(/[<>]/g, '');
                 li.setAttribute('title', data['title']);
-                let a = TP.addend(li,'a');
-                a.href = 'player.html?id=' + id;
+                let a = TP.append(li,'a');
+                a.href = TP.path+'/player-'+id+'.html';
                 let img = new Image();
+                img.src = data.img;
+                /*
                 img.src = id + '.' + T.getExt(data['img']);
                 img.once('error', function () {
                     this.src = data['img'];
                 });
+                */
                 TP.append(a,img);
                 if (search) {
                     data['title'] = data['title'].replace(search, '<b>' + search + '</b>');
                 }
-                let p = TP.addend(a,'p');
+                let p = TP.append(a,'p');
                 p.innerHTML = data['title'];
             });
             TP.append(div,ul);
             navpage&&TP.append(div,navpage.cloneNode(true));
         }else{
-            TP.addend(div,'div').innerHTML = '当前页面没有数据,更换搜索关键字,或者返回上一页';
+            TP.append(div,'div').innerHTML = '当前页面没有数据,更换搜索关键字,或者返回上一页';
         }
 
         let tags = db.fetchArray('SELECT * FROM `type` order by `num` DESC');
         if (tags) {
-            let h3 = TP.addend(div,'h3');
+            let h3 = TP.append(div,'h3');
             h3.innerHTML = '标签云';
-            let nav = TP.addend(elm,'nav');
+            let nav = TP.append(elm,'nav');
             nav.classList.add('tag-list');
             Object.entries(tags).forEach(v => {
-                let a = TP.addend(nav,'a');
+                let a = TP.append(nav,'a');
                 let data = v[1];
-                a.href = 'index.html?tag=' + data['name'];
+                a.href = TP.path+'/index.html?tag=' + data['name'];
                 a.innerHTML = data['name'] + '<b>(' + data['num'] + ')</b>';
             });
             TP.append(div,nav);
@@ -441,16 +492,17 @@ class pwa_script{
         TP.SQL._sqlite3_free();
         TP.SQL._free();
         this.setSearch(search, tag);
-        TP.getId('loading-page').remove();
+        template.elm_loading.remove();
     }
-    async player_page(template){
+    async template_player(){
         let TP = this;
-        const params = new URLSearchParams(location.search);
+        const template = TP.template;
+        const params = TP.getParams();
         let id = parseInt(params.get('id'));
         if (!id) {
             location.href = 'index.html';
         }
-        let u8 = await T.FetchData('sql.dat');
+        let u8 = await T.FetchData(TP.path+'/sql.dat');
         if(!u8){
             template.setError('数据库不存在!');
             return;
@@ -460,7 +512,8 @@ class pwa_script{
         u8=null;
         const data = db.fetchFirst(TP.sql_query + ' where `id` = ?', [id]);
         if (!data) {
-            template.setError('数据不存在!或者数据尚未导入!');
+            template.setError('数据不存在!或者数据尚未导入!5秒后返回主页!');
+            setTimeout(()=>location.href=TP.path+'/index.html',5000);
             return;
         }
         if(!data.url){
@@ -468,39 +521,45 @@ class pwa_script{
         }
         const title = data.title;
         let img = new Image();
+        img.src=data['img'];;
+        /*
         img.src = id + '.' + T.getExt(data['img']);
         img.once('error', function () {
             this.src = data['img'];
         });
+        */
         img.once('load', function () {
             T.css.addRule('.div-player>video{background-image:url(' + this.src + ');}');
         });
-        let sitenav = TP.getId('site-nav');
+        let sitenav = template.elm_nav;
         if (sitenav) {
-            let a = TP.addend(sitenav,'a');
+            let a = TP.append(sitenav,'a');
             a.href = '#';
             a.innerHTML = title;
         }
         const cache = await caches.open(TP.cachename);
-        await I.Async(I.toArr(data.url.split(','),async url=>{
+        await I.Async(I.toArr(data.url.split(','),async (url,keyindex)=>{
             let player = TP.creatElm('div');
-            let video = TP.append(player,TP.creatElm('video'));
-            let button = TP.append(player,TP.creatElm('button'));
-            let playerinfo = TP.append(player,TP.creatElm('div'));
+            TP.append(player,'h2').innerHTML = '第'+(keyindex+1)+'集';
+            let video = TP.append(player,'video');
+            let button = TP.append(player,'button');
+            let playerinfo = TP.append(player,'div');
             player.classList.add('div-player');
             video.controls = !0;
             button.innerHTML = '&#61802;';
-            let response = await cache.match(url);
-            if (!response) {
-                response = await fetch(data['url'],{method:'HEAD'}).catch(e => null);
+            if(url.indexOf(TP.path)!==-1){
+                let response = await cache.match(url);
                 if (!response) {
-                    player.innerHTML = '发生未知错误,无法为你播放!';
-                    return;
-                }
-            } else {
-                let text = await response.text();
-                if(text.indexOf('7.cdata.cc')!==-1){
-                    data.url = await TP.replaceURL(text,playerinfo,params,data)||data.url;
+                    response = await fetch(data['url'],{method:'HEAD'}).catch(e => null);
+                    if (!response) {
+                        player.innerHTML = '发生未知错误,无法为你播放!';
+                        return;
+                    }
+                } else {
+                    let text = await response.text();
+                    if(text.indexOf('7.cdata.cc')!==-1){
+                        data.url = await TP.replaceURL(text,playerinfo,params,data)||data.url;
+                    }
                 }
             }
             button.setAttribute('data-url', data.url);
@@ -508,9 +567,10 @@ class pwa_script{
                 if (this.disabled) return;
                 this.disabled = !0;
                 video.volume = 0.4;
-                let nav = TP.addend(playerinfo,'nav');
+                TP.append(playerinfo,'h3').innerHTML = '更多操作';
+                let nav = TP.append(playerinfo,'nav');
                 nav.classList.add('tag-list');
-                let btn = TP.addend(nav,'button');
+                let btn = TP.append(nav,'button');
                 btn.innerHTML = '下载视频';
                 if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     video.src = this.getAttribute('data-url');
@@ -582,12 +642,13 @@ class pwa_script{
                 video.play();
                 this.remove();
             });
-            TP.append(TP.getId('page_result'),player);
+            TP.append(template.elm_content,player);
         }));
-        let nav2 = TP.append(TP.getId('page_result'),'nav');
+        TP.append(template.elm_content,'h3').innerHTML = '标签';
+        let nav2 = TP.append(template.elm_content,'nav');
         nav2.classList.add('tag-list');
         data['type'].split(',').forEach(v => {
-            let a = TP.addend(nav2,'a');
+            let a = TP.append(nav2,'a');
             a.innerHTML = v;
             a.href = 'index.html?tag=' + v;
         });
@@ -595,12 +656,12 @@ class pwa_script{
         db.close();
         TP.SQL._sqlite3_free();
         TP.SQL._free();
-        TP.getId('loading-page').remove();
+        template.elm_loading.remove();
 
     }
     setSearch(search, tag) {
         const TP = this;
-        let sql_search = TP.getId('page-search');
+        let sql_search = this.template.elm_search;
         if (sql_search) {
             let sql_search_input = sql_search.querySelector('input');
             let sql_search_btn = sql_search.querySelector('button');
@@ -645,6 +706,7 @@ class pwa_script{
                     div.once('click',function(){location.reload();});
                 });
             },
+            /*
             '导入图片':function(e){
                 if(this.disabled)return;
                 T.upload(async files=>{
@@ -653,6 +715,7 @@ class pwa_script{
                     this.disabled = !1;
                 });
             }
+            */
         });
     }
     async replaceURL(text,playerinfo,params,data){
@@ -670,14 +733,14 @@ class pwa_script{
                 }));
             }
         }
-        let nav = TP.addend(playerinfo,'nav');
+        let nav = TP.append(playerinfo,'nav');
         nav.classList.add('tag-list');
         for (let i = 0; i < arr.length + 1; i++) {
-            let a = TP.addend(nav,'a');
+            let a = TP.append(nav,'a');
             if (i == 0) {
-                a.href = eq == undefined ? '#' : 'player.html?id=' + data['id'];
+                a.href = eq == undefined ? '#' : TP.path+'/player-'+data['id']+'.html';
             } else {
-                a.href = eq != undefined && i == eq + 1 ? '#' : 'player.html?id=' + data['id'] + '&eq=' + (i - 1);
+                a.href = eq != undefined && i == eq + 1 ? '#' : TP.path+'/player-'+data['id']+'.html?eq=' + (i - 1);
             }
             a.innerHTML = '线路:' + (i + 1);
         }

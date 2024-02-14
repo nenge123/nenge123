@@ -5,6 +5,9 @@ var MyPWA = new class{
         this.setStorage();
         T.SW&&T.SW.ready.then(()=>this.initPWA());
     }
+    get elm_content(){
+        return T.$('#page-result');
+    }
     setCache(){
         let cacheElm = document.getElementById('cachelist');
         self.caches&&self.caches.keys().then(list=> list.forEach(v=>{
@@ -44,9 +47,6 @@ var MyPWA = new class{
         });
 
     }
-    getResponse(name,data){
-        return new Response(new Blob([data]),{status:200,headers:{"content-type":T.getMime(name),'content-length':data.size||data.byteLength||data.length}});
-    }
     async initPWA(){
         document.getElementById('install-pwa').hidden = !1;
         if(location.search){
@@ -54,7 +54,7 @@ var MyPWA = new class{
                 document.getElementById('install-pwa').hidden = !0;
                 alert('你的浏览器太落后了,请使用正版浏览,不要使用国内套壳浏览器(最小浏览器)');
             }else{
-                let result = document.getElementById('pwa-result');
+                let result = this.elm_content;
                 let params = new URLSearchParams(location.search).get('back');
                 let url = params.replace(location.origin,'');
                 if(params){
@@ -88,7 +88,14 @@ var MyPWA = new class{
                     }
                 }
                 if(!path) return;
-                const CACHENAME = CACHE_NAME+path.split('/').splice(0,3).join('-').toUpperCase();
+                let mode = CACHE_SOURCE[path].mode;
+                switch(mode){
+                    case 'sql':{
+                        await T.addJS('/assets/js/router/pwa-script-'+mode+'.js');
+                        break;
+                    }
+                }
+                const cachename = CACHE_NAME+path.split('/').splice(0,3).join('-').toUpperCase();
                 result.insertBefore(document.createElement('div'),result.children[0]).innerHTML='正在加载配置';
                 let paths = path.split('/');
                 let sourceURL = CACHE_SOURCE[path].url;
@@ -99,26 +106,12 @@ var MyPWA = new class{
                 }
                 Object.assign(jsondata,{
                     path:path,
-                    cachename:CACHENAME,
+                    cachename:cachename,
                     url:sourceURL
                 });
-                const cache = await caches.open(CACHENAME);
-                if(jsondata.script){
-                    cache.put(path+'/script.js',this.getResponse('js',jsondata.script));
-                    //await T.addJS(path+'/script.js');
-                    //if(T.isLocal)await T.addJS('/assets/js/router/template-pwa-script.js');
-                    //else await T.addJS(path+'/script.js');
-                    jsondata.script = true;
-                }
-                if(CACHE_SOURCE[path].mode=='sql'){
-                    await T.addJS('/assets/js/router/pwa-script-sql.js');
-                }
-                cache.put(path+'/config.json',this.getResponse('json',JSON.stringify(jsondata)));
-                if(I.obj(jsondata)){
-                    if(typeof pwa_script !='undefined'){
-                        await new pwa_script(jsondata).init(result,cache);
-                    }
-                }
+                const cache = await caches.open(cachename);
+                await cache.put(path+'/config.json',new Response(new Blob([JSON.stringify(jsondata)],{type:T.getMime('json')+';charset=utf-8'})));
+                await new template_script(jsondata,this).init(cache);
                 document.getElementsByName('go')[0].hidden=!1;
                 document.getElementsByName('go')[0].on('click',function(){
                     location.href = document.getElementsByName('url')[0].value;

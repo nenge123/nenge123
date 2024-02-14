@@ -1155,6 +1155,9 @@
         num(o){
 			return I.C(o, Number)
 		},
+        int(o){
+            return !I.null(o)&&!isNaN(o)
+        },
         /**
          * null值
          * @param {Object} o 

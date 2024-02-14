@@ -1,6 +1,5 @@
 "use strict";
 const CACHE_NAME = 'NENGE-NET';
-const CACHE_CDN_NAME = CACHE_NAME+'-CROSS-CDN';
 const version = Date.parse('2023 09/23 19:40');
 const CACHE_LIST = [];
 const CACHE_ORIGIN = location.origin;
@@ -18,6 +17,7 @@ const T = new class {
     }
     async LoaclCache(request,url){
         if(!CACHE_LIST.length)await this.checkList();
+        if(T.isLocal)return await fetch(request);
         let cache = await caches.open(CACHE_NAME);
         url = url?url:this.toLink(this.toPath(request));
         let response = await cache.match(url);
@@ -34,8 +34,8 @@ const T = new class {
         }
         return response||this.toStatus(404);
     }
-    async CdnCache(request){
-        let cache = await caches.open(CACHE_CDN_NAME);
+    async CdnCache(request,NAME){
+        let cache = await caches.open(CACHE_NAME+NAME);
         let response = await cache.match(request);
         if(!response){
             response = await fetch(request);
@@ -53,14 +53,8 @@ const T = new class {
         let last = urls.pop();
         if(!last)last = 'index.html';
         if(cacheInfo.mode=='sql'){
-            if(last==='player.html'){
-                return await this.LoaclCache('/template-sql-player.html');
-            }
-            if(last==='index.html'){
+            if(last.indexOf('.html')!==-1){
                 return await this.LoaclCache('/template-sql-index.html');
-            }
-            if(/\d*\.html/.test(last)){
-                return this.toLocation('player.html?id='+last.match(/(\d+)/)[1]);
             }
             return this.toStatus(404);
         }
@@ -148,11 +142,17 @@ const T = new class {
             this.SW.postMessage(str);
         }
     }
+    async loadSource(){
+        let response = await fetch('/source.json');
+        if(response){
+            Object.assign(CACHE_SOURCE,await response.json());
+        }
+    }
     async checkList(method){
         if(!CACHE_LIST.length){
             CACHE_LIST.push(this.toLink(ZIP_URL));
         }
-        Object.assign(CACHE_SOURCE,await (await fetch('/source.json')).json());
+        await this.loadSource();
         const cache = await caches.open(CACHE_NAME);
         const list = await cache.keys();
         list.forEach(v=>{
@@ -275,8 +275,10 @@ Object.entries({
             }
         }
         if(url.indexOf(location.host)===-1){
-            if(/cdn/i.test(url)&&/\.(jpg|gif|js|css|webp|png|m3u8|woff2|woff|svg|ttf|eot)$/ig.test(url)){
-                return event.respondWith(T.CdnCache(request));
+            if(url.indexOf('cdn')!==-1){
+                return event.respondWith(T.CdnCache(request,'-CROSS-CDN'));
+            }else if(/\.(jpg|gif|webp|png)$/ig.test(url)){
+                return event.respondWith(T.CdnCache(request,'-CROSS-IMAGES'));
             }
         }
         return false;
@@ -482,7 +484,7 @@ Object.entries({
                 break;
             }
             case 'load-source':{
-                Object.assign(CACHE_SOURCE,await (await fetch('/source.json')).json());
+                await T.loadSource();
                 break;
             }
         }

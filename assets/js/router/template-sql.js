@@ -12,35 +12,60 @@ var MyTemplate = new class{
         location.href = '/template-install-pwa.html?back='+encodeURIComponent(location.href.replace(location.origin,''));
     }
     async init(){
-        //await T.addJS(T.libPath+ 'sql.js');
-        const jsondata = await T.ajax({url:'config.json',type:'json'});
+        const CACHE_SOURCE = await T.getMessage('cachesource');
+        let path;
+        for(let reg in CACHE_SOURCE){
+            if(location.pathname.indexOf(reg)===0){
+                path = reg;
+                break;
+            }
+        }
+        if(!path) return this.gotoPWA();
+        const CACHE_NAME = await T.getMessage('cachename');
+        const CACHE_DATA = CACHE_SOURCE[path];
+        const jsondata = await T.ajax({url:path+'/config.json',type:'json'});
         if(!jsondata){
             return this.gotoPWA();
         }
-        this.jsondata = jsondata;
-        if(jsondata.mode=='sql'){
-            //await T.addLib('sql.zip');
-            return this.RUN_SQL(jsondata);
+        this.path = path;
+        switch(CACHE_DATA.mode){
+            case 'sql':{
+                await T.addJS('/assets/js/router/pwa-script-'+CACHE_DATA.mode+'.js');
+                await this.runBySql(jsondata);
+                break;
+            }
         }
     }
-    async RUN_SQL(jsondata){
-        let path = jsondata.path;
-        let url = jsondata.url;
-        let limit = jsondata.limit;
-        await T.addJS('/assets/js/router/pwa-script-sql.js');
-        let pwa_sql =  new pwa_script(jsondata);
-        I.tryC(pwa_sql,'getAaction',this);
-        switch(T.getName(location.href)){
+    async runBySql(jsondata){
+        let templateScript =  new template_script(jsondata,this);
+        let params = templateScript.getParams();
+        let router = params.get('router') || T.getKey(location.href);
+        I.tryC(templateScript,'getAaction',this);
+        this.templateScript = templateScript;
+        console.log(router);
+        switch(router){
             case '':
-            case 'index.html':{
-                await pwa_sql.index_page(this);
+            case 'index':{
+                await templateScript.template_index();
                 break;
             }
-            case 'player.html':{
-                await pwa_sql.player_page(this);
+            case 'player':{
+                await templateScript.template_player();
                 break;
             }
         }
+    }
+    get elm_content(){
+        return T.$('#page-result');
+    }
+    get elm_nav(){
+        return T.$('#site-nav');
+    }
+    get elm_search(){
+        return T.$('#page-search');
+    }
+    get elm_loading(){
+        return T.$('#loading-page');
     }
     setUpdate(data){
         let button = document.getElementById('btn-update-cache');

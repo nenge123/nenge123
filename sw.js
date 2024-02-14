@@ -215,6 +215,10 @@ const T = new class {
         if(Notification&&Notification.permission !='granted') return this.postMethod('notification_error');
         return registration.showNotification(title,options);
     }
+    async closeNotification(tag){
+        if(Notification&&Notification.permission !='granted') return;
+        Array.from(await registration.getNotifications({tag}),notice=>notice.close());
+    }
 };
 const CACHE_SOURCE = {};
 const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
@@ -297,6 +301,12 @@ Object.entries({
                 delete data.clientID;
                 delete data.result;
                 switch(method){
+                    case 'sync':{
+                        if(data.tag){
+                            self.dispatchEvent(new SyncEvent('sync',{tag:data.tag}));
+                        }
+                        break;
+                    }
                     case 'register':{
                         T.SW = source;
                         break;
@@ -475,7 +485,7 @@ Object.entries({
                         tag
                     });
                 }));
-                Array.from(await registration.getNotifications({tag}),notice=>notice.close());
+                T.closeNotification(tag);
                 break;
             }
             case 'cache-cdn-update':{

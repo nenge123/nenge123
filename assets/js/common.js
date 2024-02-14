@@ -948,8 +948,11 @@
             (await navigator.serviceWorker.ready).showNotification(title,options);
         }
         async sync(tag){
-            if(!await this.permission('background-sync')) return;
+            if(!await this.permission('background-sync')) return this.postSync(tag);
             (await navigator.serviceWorker.ready).sync.register(tag);
+        }
+        async postSync(tag){
+            return T.postMessage({method:'sync',tag});
         }
         async periodicSync(tag,options,sw){
             if(!await this.permission('periodic-background-sync')) return;
@@ -2578,7 +2581,7 @@
                                             {
                                                 title:'更新脚本',
                                                 click(){
-                                                    T.SW.sync('pwa-update');
+                                                    T.SW.update('pwa-update');
                                                     this.remove();
                                                 }
                                             },
@@ -2621,7 +2624,7 @@
                     });
                     Object.assign(T.action,{
                         notification_error(){
-                            T.showWin({title:'警告',content:'通知权限被禁止',lock:!0})
+                            T.showWin({title:'警告',content:'通知权限被禁止',lock:!0,time:'3s'})
                         },
                         pwa_activate(){
                             T.showWin({

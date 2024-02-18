@@ -3,6 +3,8 @@ const CACHE_NAME = 'NENGE-NET';
 const version = Date.parse('2023 09/23 19:40');
 const CACHE_LIST = [];
 const CACHE_ORIGIN = location.origin;
+const CACHE_SOURCE = {};
+const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
 const T = new class {
     async InitCache(request,url){
         await this.checkList('pwa_init');
@@ -221,7 +223,7 @@ const T = new class {
         Array.from(await registration.getNotifications({tag}),notice=>notice.close());
     }
     action = {
-        'cache-check':async function(progress,source){
+        cache_check:async function(progress,source){
             let cache = await caches.open(CACHE_NAME);
             let size = 0;
             await Promise.all((await cache.keys()).map(async request=>{
@@ -232,31 +234,36 @@ const T = new class {
                     console.log(modified,cachetime,request.url);
                     await cache.put(request.url,(await fetch(request.url)).clone());
                 }
-                progress&&progress(request.url);
+                (progress instanceof Function)&&progress(request.url);
             }));
-            size&&T.postMethod('pwa_cache',size,source);
+            if(!progress)return size;
+            size&&T.postMethod('pwa_cache_update',size,source);
+            
         },
-        'cache-update':async function(){
+        cache_update:async function(){
             await caches.delete(CACHE_NAME);
+            T.postMethod('pwa_cache_delete');
         },
-        'cache-clear':async function(){
+        cache_clear:async function(){
             let list = await caches.keys();
             list.map(v=>caches.delete(v));
+            T.postMethod('pwa_cache_clear');
         },
-        'cache-cdn-update':async function(){
+        cache_cdn_update:async function(){
             let list = await caches.keys();
             list.map(v=>/CROSS/.test(v)&&caches.delete(v));
+            T.postMethod('pwa_cache_cdn_clear');
         },
         unregister(){
+            T.postMethod('pwa_remove'),
             registration.unregister();
         },
-        'pwa-update':function(){
+        update:function(){
+            T.postMethod('pwa_update');
             return registration.update();
         }
     };
 };
-const CACHE_SOURCE = {};
-const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
 importScripts(ZIP_URL);
 Object.entries({
     install(event) {
@@ -270,7 +277,7 @@ Object.entries({
         return event.waitUntil(
             T.checkList('pwa_init',!0,T.SW).then(()=>{
                 if(this.permission){
-                    T.action['cache-check'](null,T.SW);
+                    T.action['cache_check'](null,T.SW);
                 }else{
                     self.dispatchEvent(new SyncEvent('sync',{tag:'register'}));
                 }
@@ -452,27 +459,26 @@ Object.entries({
                     vibrate: [200, 100, 200, 100, 200],
                     tag
                 });
-                await T.action[tag]();
                 break;
             }
             case 'unregister':{
                 await T.action[tag]();
                 break;
             }
-            case 'pwa-update':{
+            case 'update':{
                 await T.action[tag]();
                 break;
             }
-            case 'cache-update':{
+            case 'cache_update':{
                 T.showNotification('网站缓存',{
                     body:CACHE_NAME+'悟空你真不要吗?',
                     actions:[
                         {
-                            action:!0,
+                            action:'ok',
                             title:'不要',
                         },
                         {
-                            action:!1,
+                            action:'no',
                             title:'算了',
                         }
                     ],
@@ -480,16 +486,16 @@ Object.entries({
                 });
                 break;
             }
-            case 'cache-clear':{
+            case 'cache_clear':{
                 T.showNotification('网站缓存',{
                     body:'要清空吗?',
                     actions:[
                         {
-                            action:!0,
+                            action:'ok',
                             title:'要要',
                         },
                         {
-                            action:!1,
+                            action:'no',
                             title:'算了',
                         }
                     ],
@@ -497,27 +503,16 @@ Object.entries({
                 });
                 break;
             }
-            case 'cache-check':{
-                T.showNotification('正在更新',{
-                    body:CACHE_NAME+'缓存!',
-                    lang:'zh-yue',
-                    renotify:!0,
-                    requireInteraction:!0,
-                    /**
-                     * 震动
-                     */
-                    vibrate: [200, 100, 200, 100, 200],
-                    tag
-                });
-                await T.action[tag]();
-                T.closeNotification(tag);
+            case 'cache_check':{
+                let size = await T.action[tag]();
+                T.postMethod('pwa_cache_update',size||0,source);
                 break;
             }
-            case 'cache-cdn-update':{
+            case 'cache_cdn_update':{
                 await T.action[tag]();
                 break;
             }
-            case 'load-source':{
+            case 'load_source':{
                 await T.loadSource();
                 break;
             }
@@ -556,16 +551,16 @@ Object.entries({
         let tag = notification.tag;
         let action = event.action;
         if(tag){
-            switch(tag){
-                case 'cache-update':{
-                    if(action&&action!='false'){
-                        await T.action[tag]();
+            if(action=='ok'){
+                switch(tag){
+                    case 'cache_update':{
+                            await T.action[tag]();
+                        break;
                     }
-                    break;
-                }
-                case 'cache-clear':{
-                    await T.action[tag]();
-                    break;
+                    case 'cache_clear':{
+                        await T.action[tag]();
+                        break;
+                    }
                 }
             }
         }

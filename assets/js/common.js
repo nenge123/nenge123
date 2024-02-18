@@ -897,7 +897,7 @@
                             this.connect(sw2,'register');
                         }
                     });
-                    T.toEvent('pwaload');
+                    T.CF('pwa_loader');
                 });
                 this.ready = (async ()=>{
                     let SW = navigator.serviceWorker;
@@ -957,10 +957,6 @@
         async periodicSync(tag,options,sw){
             if(!await this.permission('periodic-background-sync')) return;
             (await navigator.serviceWorker.ready).periodicSync.register(tag,options);
-        }
-        async update(){
-            let sw = await navigator.serviceWorker.ready;
-            return sw.update();
         }
         async setPush(key){
             if(!await this.permission('push')) return;
@@ -2410,6 +2406,7 @@
                     wbox.popover = 'auto';
                     wbox.on('hide',function(){
                         this.hidePopover();
+                        this.toEvent('close');
                     });
                     wbox.on('show',function(){
                         this.showPopover();
@@ -2420,6 +2417,7 @@
                 if('showModal' in wbox){
                     wbox.on('hide',function(){
                         this.close('hide');
+                        this.toEvent('close');
                     });
                     wbox.on('show',function(){
                         this.showModal();
@@ -2438,6 +2436,7 @@
             });
             div.on('hide',function(){
                 this.hidden=!0;
+                this.toEvent('close');
             });
             wbox.on('hide',function(){
                 this.parentNode.toEvent('hide');
@@ -2563,66 +2562,62 @@
                 T.debug = dataAttr.debug;
                 if(dataAttr.sw){
                     T.SW = new CustomPWA(T,'/sw.js');
-                    T.on('pwaload',function(){
-                        let foot = T.$('#footer');
-                        if(foot){
-                            let elm = foot.appendChild(this.$ce('button'));
-                            elm.innerHTML = 'PWA操作';
-                            elm.on('click',async function(e){
-                                e.preventDefault();
-                                let pwa_tag = T.$('#pwa_tag');
-                                if(!pwa_tag){
-                                    return T.showWin({
-                                        id:'pwa_tag',
-                                        class:['min'],
-                                        title:'ServiceWorker管理',
-                                        content:'缓存是指ServiceWorker中的caches缓存下来的web请求.<p>感觉数据被缓存,点击清空缓存!</p>',
-                                        action:[
-                                            {
-                                                title:'更新脚本',
-                                                click(){
-                                                    T.SW.update('pwa-update');
-                                                    this.remove();
-                                                }
-                                            },
-                                            {
-                                                title:'更新缓存',
-                                                click(){
-                                                    T.SW.sync('cache-check');
-                                                    this.remove();
-                                                }
-                                            },
-                                            {
-                                                title:'清空缓存',
-                                                click(){
-                                                    T.SW.sync('cache-clear');
-                                                    this.remove();
-                                                }
-                                            },
-                                            {
-                                                title:'卸载',
-                                                click(){
-                                                    T.SW.sync('unregister');
-                                                    this.remove();
-                                                    setTimeout(()=>location.href='about:blank',window.close(),1000);
-                                                }
-                                            },
-                                            {
-                                                title:'刷新页面',
-                                                click(){
-                                                    location.reload();
-                                                }
-                                            }
-                                        ],
-                                        lock:!0,
-                                        time:'5s',
-                                    });
-                                }
-                                pwa_tag.toEvent('show');
-                            });
-                        }
-                    });
                     Object.assign(T.action,{
+                        pwa_loader(){
+                            let foot = T.$('#footer');
+                            if(foot){
+                                let elm = foot.appendChild(this.$ce('button'));
+                                elm.innerHTML = 'PWA操作';
+                                elm.on('click',async function(e){
+                                    e.preventDefault();
+                                    let pwa_tag = T.$('#pwa_tag');
+                                    if(!pwa_tag){
+                                        return T.showWin({
+                                            id:'pwa_tag',
+                                            class:['min'],
+                                            title:'ServiceWorker管理',
+                                            content:'缓存是指ServiceWorker中的caches缓存下来的web请求.<p>感觉数据被缓存,点击清空缓存!</p>',
+                                            action:[
+                                                {
+                                                    title:'更新脚本',
+                                                    click(){
+                                                        T.SW.postSync('update');
+                                                    }
+                                                },
+                                                {
+                                                    title:'更新缓存',
+                                                    click(){
+                                                        T.SW.postSync('cache_check');
+                                                    }
+                                                },
+                                                {
+                                                    title:'清空缓存',
+                                                    click(){
+                                                        T.SW.postSync('cache_clear');
+                                                    }
+                                                },
+                                                {
+                                                    title:'卸载',
+                                                    click(){
+                                                        T.SW.postSync('unregister');
+                                                    }
+                                                },
+                                                {
+                                                    title:'刷新页面',
+                                                    click(){
+                                                        location.reload();
+                                                    }
+                                                }
+                                            ],
+                                            lock:!0,
+                                            time:'5s',
+                                        });
+                                    }
+                                    pwa_tag.toEvent('show');
+                                });
+                            }
+
+                        },
                         notification_error(){
                             T.showWin({title:'警告',content:'通知权限被禁止',lock:!0,time:'3s'})
                         },
@@ -2634,15 +2629,13 @@
                                     {
                                         title:'更新缓存(建议)',
                                         click(){
-                                            T.SW.sync('cache-check');
-                                            this.remove();
+                                            T.SW.postSync('cache_check');
                                         }
                                     },
                                     {
                                         title:'清空缓存',
                                         click(){
-                                            T.SW.sync('cache-clear');
-                                            this.remove();
+                                            T.SW.postSync('cache_clear');
                                         }
                                     },
                                     {
@@ -2654,6 +2647,24 @@
                                 ],
                                 lock:!0,
                                 time:'3s',
+                            });
+                        },
+                        pwa_cache_update(data){
+                            T.showWin({title:'提醒',content:'本站缓存更新'+data.result+'个文件',time:'2s'})
+                        },
+                        pwa_cache_clear(){
+                            T.showWin({title:'提醒',content:'Caches缓存已被清空!',lock:!0})
+                        },
+                        pwa_cache_delete(){
+                            T.showWin({title:'提醒',content:'本站缓存已被清空!',time:'2s'})
+                        },
+                        pwa_update(){
+                            T.showWin({title:'提醒',content:'脚本更新检测完毕!',lock:!0})
+                        },
+                        pwa_remove(){
+                            T.showWin({title:'提醒',content:'已经替你卸载脚本,请关闭网站!',lock:!0}).on('close',function(){
+                                location.href='about:blank';
+                                window.close()
                             });
                         }
                     });

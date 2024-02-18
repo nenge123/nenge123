@@ -165,8 +165,6 @@ const T = new class {
         return this.postMessage({ method,result},source||!0)
     }
     isLocal = /(127\.0\.0\.1|localhost)/.test(location.host);
-    action = {
-    };
     Client = undefined;
     toLocation(url){
         return this.toStatus(301,{location:url});
@@ -211,35 +209,51 @@ const T = new class {
         return new Response(data instanceof Blob?data:new Blob([data]),{headers});
 
     }
+    get permission(){
+        return Notification&&Notification.permission !='granted'||false;
+    }
     showNotification(title,options){
-        if(Notification&&Notification.permission !='granted') return this.postMethod('notification_error');
+        if(this.permission) return;
         return registration.showNotification(title,options);
     }
     async closeNotification(tag){
-        if(Notification&&Notification.permission !='granted') return;
+        if(this.permission) return;
         Array.from(await registration.getNotifications({tag}),notice=>notice.close());
     }
-    async updateCache(){
-        let cache = await caches.open(CACHE_NAME);
-        await Promise.all((await cache.keys()).map(async request=>{
-            let modified = (await fetch(request.url,{method:'HEAD'})).headers.get('last-modified');
-            let cachetime = (await cache.match(request)).headers.get('last-modified');
-            if(modified!=cachetime){
-                console.log(modified,cachetime,request.url);
-                await cache.put(request.url,(await fetch(request.url)).clone());
-            }
-            /*
-            T.showNotification('正在更新',{
-                body:'已检查:'+T.toPath(request.url),
-                lang:'zh-yue',
-                renotify:!0,
-                requireInteraction:!0,
-                vibrate: [200, 100, 200, 100, 200],
-                tag
-            });
-            */
-        }));
-    }
+    action = {
+        'cache-check':async function(progress,source){
+            let cache = await caches.open(CACHE_NAME);
+            let size = 0;
+            await Promise.all((await cache.keys()).map(async request=>{
+                let modified = (await fetch(request.url+'?'+version,{method:'HEAD'})).headers.get('last-modified');
+                let cachetime = (await cache.match(request)).headers.get('last-modified');
+                if(modified!=cachetime){
+                    size ++;
+                    console.log(modified,cachetime,request.url);
+                    await cache.put(request.url,(await fetch(request.url)).clone());
+                }
+                progress&&progress(request.url);
+            }));
+            size&&T.postMethod('pwa_cache',size,source);
+        },
+        'cache-update':async function(){
+            await caches.delete(CACHE_NAME);
+        },
+        'cache-clear':async function(){
+            let list = await caches.keys();
+            list.map(v=>caches.delete(v));
+        },
+        'cache-cdn-update':async function(){
+            let list = await caches.keys();
+            list.map(v=>/CROSS/.test(v)&&caches.delete(v));
+        },
+        unregister(){
+            registration.unregister();
+        },
+        'pwa-update':function(){
+            return registration.update();
+        }
+    };
 };
 const CACHE_SOURCE = {};
 const ZIP_URL = "/assets/js/lib/zip.min.js?"+version;
@@ -255,8 +269,11 @@ Object.entries({
         T.postMethod('pwa_activate',!0,T.SW);
         return event.waitUntil(
             T.checkList('pwa_init',!0,T.SW).then(()=>{
-                T.updateCache();
-                self.dispatchEvent(new SyncEvent('sync',{tag:'register'}));
+                if(this.permission){
+                    T.action['cache-check'](null,T.SW);
+                }else{
+                    self.dispatchEvent(new SyncEvent('sync',{tag:'register'}));
+                }
                 return self.skipWaiting();
             })
         );
@@ -325,7 +342,11 @@ Object.entries({
                 switch(method){
                     case 'sync':{
                         if(data.tag){
-                            self.dispatchEvent(new SyncEvent('sync',{tag:data.tag}));
+                            if(this.permission){
+                                T.action[tag];
+                            }else{
+                                self.dispatchEvent(new SyncEvent('sync',{tag:data.tag}));
+                            }
                         }
                         break;
                     }
@@ -431,14 +452,15 @@ Object.entries({
                     vibrate: [200, 100, 200, 100, 200],
                     tag
                 });
+                await T.action[tag]();
                 break;
             }
             case 'unregister':{
-                registration.unregister();
+                await T.action[tag]();
                 break;
             }
             case 'pwa-update':{
-                registration.update();
+                await T.action[tag]();
                 break;
             }
             case 'cache-update':{
@@ -487,13 +509,12 @@ Object.entries({
                     vibrate: [200, 100, 200, 100, 200],
                     tag
                 });
-                await T.updateCache();
+                await T.action[tag]();
                 T.closeNotification(tag);
                 break;
             }
             case 'cache-cdn-update':{
-                await caches.delete(CACHE_CDN_NAME);
-                T.showNotification('网站缓存',{body:CACHE_CDN_NAME+'已更新!'});
+                await T.action[tag]();
                 break;
             }
             case 'load-source':{
@@ -538,13 +559,12 @@ Object.entries({
             switch(tag){
                 case 'cache-update':{
                     if(action&&action!='false'){
-                        await caches.delete(CACHE_NAME);
+                        await T.action[tag]();
                     }
                     break;
                 }
                 case 'cache-clear':{
-                    let list = await caches.keys();
-                    list.map(v=>caches.delete(v));
+                    await T.action[tag]();
                     break;
                 }
             }

@@ -541,7 +541,8 @@
     }
     class CustomCSS {
         constructor(sheet,selectorText) {
-            this.sheet = sheet&&sheet.cssRules?sheet:document.head.appendChild(document.createElement('style')).sheet;
+            let T = exports.Nenge;
+            this.sheet = sheet&&sheet.cssRules?sheet:T.$add('style',document.head).sheet;
             if(sheet&&!sheet.cssRules){
                 this.selectorText = selectorText;
             }
@@ -932,7 +933,7 @@
             }
         }
         async connect(sw,state){
-            sw = sw||(await navigator.serviceWorker.ready).active;
+            sw = sw||(await this.registration).active;
             sw.postMessage({method: state||'connect'})
         }
         async clear() {
@@ -945,22 +946,22 @@
         }
         async notice(title,options){
             if(!await this.permission('notifications')) return;
-            (await navigator.serviceWorker.ready).showNotification(title,options);
+            (await this.registration).showNotification(title,options);
         }
         async sync(tag){
             if(!await this.permission('background-sync')) return this.postSync(tag);
-            (await navigator.serviceWorker.ready).sync.register(tag);
+            (await this.registration).sync.register(tag);
         }
         async postSync(tag){
             return T.postMessage({method:'sync',tag});
         }
         async periodicSync(tag,options,sw){
             if(!await this.permission('periodic-background-sync')) return;
-            (await navigator.serviceWorker.ready).periodicSync.register(tag,options);
+            (await this.registration).periodicSync.register(tag,options);
         }
         async setPush(key){
             if(!await this.permission('push')) return;
-            let sw = await navigator.serviceWorker.ready;
+            let sw = await this.registration;
             let state = await sw.pushManager.permissionState({
                 userVisibleOnly:!0,
                 applicationServerKey:key
@@ -978,6 +979,9 @@
                 console.log(sub);
 
             }
+        }
+        get registration(){
+            return navigator.serviceWorker.ready;
         }
     }
     /**
@@ -1619,15 +1623,24 @@
          */
         FetchARG(ARG,options){
             ARG =  Object.assign({ url:location.href},I.str(ARG)?{url: ARG}:ARG,options);
-            ARG.key = ARG.key===!0?this.getName(ARG.url)||'index.html':ARG.key||ARG.url;
+            let key = this.getName(ARG.url.split('?')[0]) || 'index.html';
+            if(ARG.key===!0)ARG.key = key;
             if(ARG.libjs){
-                if(/\.zip$/.test(ARG.key)){
-                    ARG.key = ARG.key.replace(/\.zip$/,'.js');
+                if(!ARG.libext)ARG.libext='js';
+                let key = this.getName(ARG.url);
+                let ext = T.getExt(key);
+                if(ext=='zip'|| ARG.unpack&&ext!=ARG.libext){
+                    if(!I.str(ARG.key)){
+                        ARG.key = key.replace('.'+ext,'.'+ARG.libext);
+                    }
                     ARG.unpack = !0;
                 }
-                ARG.key = ARG.libjs+this.getName(ARG.key);
+                if(!ARG.key)ARG.key = key;
+                ARG.key = ARG.libjs+ARG.key;
                 if(!ARG.version)ARG.version = this.version;
                 ARG.type = 'blob';
+            }else if(!ARG.key){
+                ARG.key = ARG.url;
             }
             ARG.headers = Object.assign({ 'ajax-fetch': 'ajax' }, ARG.headers || {});
             if(ARG.json){
@@ -1643,7 +1656,7 @@
                 ARG.method = ARG.method||'get';
             }
             ARG.href = I.toGet(ARG.url,ARG.params);
-            if(/^http/.test(ARG.href)&&!ARG.corss&&ARG.href.indexOf(location.origin)===-1){
+            if(ARG.href.indexOf('http')===0&&!ARG.corss&&ARG.href.indexOf(location.origin)===-1){
                 ARG.cross = false;
                 ARG.headers = undefined;
             }
@@ -1702,7 +1715,7 @@
             if(type&&type!='u8'){
                 contentBlob = I.decode(contentBlob, headers.charset);
             }
-            if(type=='json'&&/json$/.test(headers.type)){
+            if(type=='json'){
                 contentBlob = I.Json(contentBlob);
             }
             return contentBlob;
@@ -1728,8 +1741,8 @@
             I.toArr(headers, (entry) => {
                 let content = decodeURI(entry[1]);
                 if(!!I.num(content))content = parseFloat(content);
-                else if(/GMT$/.test(content))content = new Date(content);
-                if (/content-/.test(entry[0])) {
+                else if(content.indexOf('GMT')!==-1)content = new Date(content);
+                if (entry[0].indexOf('content')!==-1) {
                     headers[entry[0]] = content;
                     let name = I.R(entry[0], /content-/);
                     switch (name) {
@@ -1759,15 +1772,22 @@
             });
             return headers;
         }
-        async FetchLibUrl(name,progress,version){
+        async getLibFile(name,progress,version,libext){
+            return await this.getTable(this.LibStore).fetch({url:name.indexOf('http')===0?name:this.libPath+name,libjs:'script-',version:version||this.version,progress,libext})
+        }
+        async getLibLink(name,progress,version,libext){
             if(!this.libjsBlob[name]){
-                this.libjsBlob[name] = this.URL(await this.getTable(this.LibStore).fetch({url:/^http/.test(name)?name:this.libPath+name,libjs:'script-',version:version||this.version,progress}));
+                this.libjsBlob[name] = this.URL(await this.getLibFile(name,progress,version,libext));
             }
             return this.libjsBlob[name];
         }
-        async addLib(name,progress,version){
+        async addLib(name,progress,version,libext){
             if(!this.libjsBlob[name]){
-                await this.addJS(await this.FetchLibUrl(name,progress,version),!0,/\.css$/.test(name));
+                await this.addJS(
+                    await this.getLibLink(name,progress,version,libext),
+                    !0,
+                    (libext||name).indexOf('.css')===-1?!1:!0
+                );
             }
         }
         /**
@@ -1995,7 +2015,7 @@
             let ext = /^52617221/.test(buf)?'rar':/^377ABCAF271C/.test(buf)?'7z':undefined;
             if(!ext) return null;
             contents = await I.toU8(contents);
-            const url = await T.FetchLibUrl(/7z$/.test(ext) ?'extract7z.zip':'libunrar.min.zip', progress);
+            const url = await T.getLibLink(/7z$/.test(ext) ?'extract7z.zip':'libunrar.min.zip', progress);
             if (!url) return null;
             return I.Async(complete => {
                 let result,worker = new Worker(url);
@@ -2047,28 +2067,28 @@
         }
         addJS(buf, cb, iscss) {
             return I.Async(back => {
-                if(!iscss&&iscss!==false){
-                    iscss = I.str(buf)&&/\.css$/.test(buf) || I.file(buf)&&/css$/.test(buf.name)||false;
-                }
-                const url = this.URL(buf);
-                if(!I.fn(cb)) cb = false;
-                const script = (!iscss ? document.body : document.head).appendChild(this.$ce(iscss ? 'link' : 'script'));
+                let url = !I.str(buf)?this.URL(buf,iscss?'css':'js'):buf;
                 const data = {
-                    type: this.getMime(iscss ? 'css' : 'js'),
-                    href: url,
-                    src: url,
-                    rel: StyleSheet.name,
                     crossorigin: "anonymous",
-                    load(e) {
-                        this.un('error',data.error);
-                        back(cb && cb(e)||e);
+                    onload(e) {
+                        back(I.fn(cb) && cb(e)||e);
                     },
-                    error(e) {
-                        this.un('load',data.error);
-                        back(cb && cb(e)||e);
+                    onerror(e) {
+                        back(I.fn(cb) && cb(e)||e);
                     }
+
                 };
-                I.setElm(script, data);
+                if(iscss){
+                    data.rel = StyleSheet.name;
+                    data.href = url;
+                }else{
+                    data.src = url;
+                }
+                let elm = this.$add(iscss?'link':'script',iscss?document.head:document.body);
+                for(let arr in data){
+                    elm[arr]=data[arr];
+                }
+                //I.setElm(this.$add(iscss?'link':'script'),data);
             });
 
         }
@@ -2180,6 +2200,10 @@
         $ce(str){
             return document.createElement(str||'div');
         }
+        $add(elm,d){
+            if(!elm||I.str(elm))elm=this.$ce(elm);
+            return (d||document.body).appendChild(elm);
+        }
         docElm(str, mime) {
             return new DOMParser().parseFromString(str, mime || document.contentType).documentElement;
         }
@@ -2220,7 +2244,7 @@
         }
         async postMessage(str,sw) {
             if(!sw){
-                let workerCtrl = await navigator.serviceWorker.ready;
+                let workerCtrl = await T.SW.registration;
                 sw = workerCtrl.active;
             }
             if(I.await(sw)) sw = await sw;
@@ -2377,13 +2401,13 @@
                 })
             }
             ['title','content','foot'].forEach(v=>{
-                let vdiv = wbox.appendChild(T.$ce());
+                let vdiv = T.$add(!1,wbox);
                 I.addClass(vdiv,v);
                 if(ARG[v]){
                     vdiv.innerHTML = ARG[v];
                 }
                 if(v=='title'){
-                    let btn = vdiv.appendChild(T.$ce('button'));
+                    let btn = T.$add('button',vdiv);
                     btn.innerHTML = '&#61453;';
                     I.addClass(btn,'close');
                     btn.on('click',function(e){
@@ -2393,7 +2417,7 @@
                 }
                 if(v=='foot'&&ARG.action){
                     I.toArr(ARG.action,entry=>{
-                        let btn = vdiv.appendChild(T.$ce('button'));
+                        let btn = T.$add('button',vdiv);
                         btn.innerHTML = entry.title;
                         I.addClass(btn,'action','w-btn');
                         if(entry.css)btn.style.cssText = entry.css;
@@ -2411,7 +2435,7 @@
                     wbox.on('show',function(){
                         this.showPopover();
                     });
-                    document.body.appendChild(wbox);
+                    T.$add(wbox);
                     return wbox.toEvent('show');
                 }
                 if('showModal' in wbox){
@@ -2422,15 +2446,15 @@
                     wbox.on('show',function(){
                         this.showModal();
                     });
-                    document.body.appendChild(wbox);
+                    T.$add(wbox);
                     return wbox.toEvent('show');
                 }
 
             }
             let div = T.$ce();
             I.addClass(div,'w-mask');
-            div.appendChild(wbox);
-            document.body.appendChild(div);
+            T.$add(wbox,div);
+            T.$add(div);
             div.on('show',function(){
                 this.hidden=!1;
             });
@@ -2566,7 +2590,7 @@
                         pwa_loader(){
                             let foot = T.$('#footer');
                             if(foot){
-                                let elm = foot.appendChild(this.$ce('button'));
+                                let elm = T.$add('button',foot);
                                 elm.innerHTML = 'PWA操作';
                                 elm.on('click',async function(e){
                                     e.preventDefault();
@@ -2674,7 +2698,7 @@
                     T.version = version?parseInt(version):T.version;
                     const assetsPath = T.dirname(T.JSpath);
                     if(fonts){
-                        I.toArr(new Set(fonts.split(',')),name=>T.getTable('libjs').fetch({url:assetsPath+name.split(':')[1],key:true}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
+                        I.toArr(new Set(fonts.split(',')),name=>T.getTable('libjs').fetch({url:assetsPath+name.split(':')[1],key:!0}).then(buf=>T.css.addFont(buf,name.split(':')[0])));
                     }
                     if(router){
                         await I.Async(I.toArr(new Set(router.split(',')),name=>name&&T.addJS(T.JSpath+'router/'+name+'.js?'+T.version,!0,!1)));

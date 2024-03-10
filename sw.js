@@ -236,7 +236,6 @@ const T = new class {
                 }
                 (progress instanceof Function)&&progress(request.url);
             }));
-            if(!progress)return size;
             size&&T.postMethod('pwa_cache_update',size,source);
             
         },
@@ -276,11 +275,7 @@ Object.entries({
         T.postMethod('pwa_activate',!0,T.SW);
         return event.waitUntil(
             T.checkList('pwa_init',!0,T.SW).then(()=>{
-                if(this.permission){
-                    T.action['cache_check'](null,T.SW);
-                }else{
-                    self.dispatchEvent(new SyncEvent('sync',{tag:'register'}));
-                }
+                T.action['cache_check'](null,T.SW);
                 return self.skipWaiting();
             })
         );
@@ -348,12 +343,9 @@ Object.entries({
                 delete data.result;
                 switch(method){
                     case 'sync':{
-                        if(data.tag){
-                            if(this.permission){
-                                T.action[tag];
-                            }else{
-                                self.dispatchEvent(new SyncEvent('sync',{tag:data.tag}));
-                            }
+                        if(data.tag&&T.action[data.tag] instanceof Function){
+                            if(T.isLocal)console.log(data.tag);
+                            T.action[data.tag]();
                         }
                         break;
                     }
@@ -528,6 +520,10 @@ Object.entries({
         console.log(tag);
 
     },
+    /**
+     * 推送事件
+     * @param {*} event 
+     */
     push(event){
         /**
          * await crypto.subtle.generateKey({
